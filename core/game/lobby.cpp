@@ -53,7 +53,15 @@ void Lobby::welcomePlayer(Player *player){
         QByteArray mapSHA1 = map()->SHA1();
 
         W3GSPacket* out = GameProtocol::serialize_W3GS_MAPCHECK(filePath, fileSize, mapInfo, mapCRC, mapSHA1);
+<<<<<<< HEAD
+<<<<<<< HEAD
         qDebug() << "Sending W3GS_MAPCHECK\n" << QByteArrayBuilder(out->data()).toReadableString() << "\n\n";
+=======
+        qDebug() << "Sending W3GS_MAPCHECK\n" << out->data().toReadableString() << "\n\n";
+>>>>>>> edd9bf880e3c92d2950859734a40a410f516d92b
+=======
+        qDebug() << "Sending W3GS_MAPCHECK\n" << out->data().toReadableString() << "\n\n";
+>>>>>>> edd9bf880e3c92d2950859734a40a410f516d92b
         player->sendPacket(out);
     }
 
