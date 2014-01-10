@@ -9,12 +9,11 @@ Lobby::Lobby(Game *parent) :
 }
 
 void Lobby::welcomePlayer(Player *player){
-    qDebug() << "Welcoming player...";
+    player->addChat("Welcoming player...");
 
     // Find slot
     foreach(Slot* slot, slotMap()->getSlots()){
         if (slot->status() == Slot::SLOT_STATUS_OCCUPIED) continue;
-        qDebug() << "TEAM: " << (slot->team() + 1) << "/" << map()->numTeams();
         slot->setStatus(Slot::SLOT_STATUS_OCCUPIED);
         slot->setComputer(false);
         slot->setPlayerId(player->playerId());
@@ -52,8 +51,10 @@ void Lobby::welcomePlayer(Player *player){
         quint32 mapInfo = map()->info();
         quint32 mapCRC = map()->CRC();
         QByteArray mapSHA1 = map()->SHA1();
-        qDebug() << "Sending W3GS_MAPCHECK";
-        player->sendPacket(GameProtocol::serialize_W3GS_MAPCHECK(filePath, fileSize, mapInfo, mapCRC, mapSHA1));
+
+        QByteArrayBuilder out = GameProtocol::serialize_W3GS_MAPCHECK(filePath, fileSize, mapInfo, mapCRC, mapSHA1);
+        qDebug() << "Sending W3GS_MAPCHECK\n" << out.toReadableString() << "\n\n";
+        player->sendPacket(out);
     }
 
     foreach(Player* p, mGame->players()){

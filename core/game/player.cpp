@@ -97,7 +97,7 @@ void Player::Recv_W3GS_LEAVEREQ(QByteArrayBuilder b){
 }
 
 void Player::Send_W3GS_LEAVERS(){
-    qDebug() << "Send_W3GS_LEAVERS @" << mGame->lobby()->elapsed();
+    addChat("Farewelling player...");
     W3GSPacket* packet = new W3GSPacket(W3GSPacket::W3GS_LEAVERS);
     socket->write(packet->toPackedData());
     socket->waitForBytesWritten();
