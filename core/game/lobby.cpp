@@ -46,15 +46,15 @@ void Lobby::welcomePlayer(Player *player){
     }
 
     {
-        QString filePath = map()->path();
-        quint32 fileSize = map()->size();
-        quint32 mapInfo = map()->info();
-        quint32 mapCRC = map()->CRC();
-        QByteArray mapSHA1 = map()->SHA1();
+//        QString filePath = map()->path();
+//        quint32 fileSize = map()->size();
+//        quint32 mapInfo = map()->info();
+//        quint32 mapCRC = map()->CRC();
+//        QByteArray mapSHA1 = map()->SHA1();
 
-        W3GSPacket* out = GameProtocol::serialize_W3GS_MAPCHECK(filePath, fileSize, mapInfo, mapCRC, mapSHA1);
-        qDebug() << "Sending W3GS_MAPCHECK\n" << QByteArrayBuilder(out->data()).toReadableString() << "\n\n";
-        player->sendPacket(out);
+//        W3GSPacket* out = GameProtocol::serialize_W3GS_MAPCHECK(filePath, fileSize, mapInfo, mapCRC, mapSHA1);
+//        qDebug() << "Sending W3GS_MAPCHECK\n" << QByteArrayBuilder(out->data()).toReadableString() << "\n\n";
+//        player->sendPacket(out);
     }
 
     foreach(Player* p, mGame->players()){
