@@ -52,8 +52,8 @@ void Lobby::welcomePlayer(Player *player){
         quint32 mapCRC = map()->CRC();
         QByteArray mapSHA1 = map()->SHA1();
 
-        QByteArrayBuilder out = GameProtocol::serialize_W3GS_MAPCHECK(filePath, fileSize, mapInfo, mapCRC, mapSHA1);
-        qDebug() << "Sending W3GS_MAPCHECK\n" << out.toReadableString() << "\n\n";
+        W3GSPacket* out = GameProtocol::serialize_W3GS_MAPCHECK(filePath, fileSize, mapInfo, mapCRC, mapSHA1);
+        qDebug() << "Sending W3GS_MAPCHECK\n" << out->data().toReadableString() << "\n\n";
         player->sendPacket(out);
     }
 
