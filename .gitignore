@@ -3,6 +3,7 @@ BNCore.*/
 build/
 .svn/
 *.pro.user*
+*.autosave
 
 #################
 ## Eclipse

@@ -25,7 +25,7 @@ public:
     
     QTcpSocket* socket;
     bool initialize(int socketDescriptor);
-    void addChat(QString s, Core::MessageType type);
+    void addChat(QString s, Core::MessageType type = Core::MESSAGE_TYPE_DEFAULT);
 
     void Send_W3GS_PING_FROM_HOST();
     void Send_W3GS_REJECTJOIN(quint32 result);
