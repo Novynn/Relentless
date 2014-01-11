@@ -47,10 +47,14 @@ public:
 
     Q_ENUMS(PacketId)
 
-    explicit W3GSPacket(PacketId pId, QByteArray data = QByteArray(), Locality from = Packet::FROM_LOCAL)
+    W3GSPacket(PacketId pId, QByteArray data = QByteArray(), Locality from = Packet::FROM_LOCAL)
         : Packet(data, from), mPId(pId){
         if (locality() == Packet::FROM_SERVER)
             stripHeader();
+    }
+
+    W3GSPacket(uint pId, QByteArray data = QByteArray(), Locality from = Packet::FROM_LOCAL)
+        : W3GSPacket((PacketId) pId, data, from){
     }
 
     uint packetId() const {
@@ -58,9 +62,13 @@ public:
     }
 
     QString packetIdString() const {
+        return W3GSPacket::packetIdToString(mPId);
+    }
+
+    static QString packetIdToString(PacketId p) {
         QMetaObject metaObject = W3GSPacket::staticMetaObject;
         QMetaEnum metaEnum = metaObject.enumerator(metaObject.indexOfEnumerator("PacketId"));
-        return QString(metaEnum.valueToKey(mPId));
+        return QString(metaEnum.valueToKey(p));
     }
 
     Protocol protocol() const {

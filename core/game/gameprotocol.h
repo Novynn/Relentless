@@ -2,60 +2,70 @@
 #define GAMEPROTOCOL_H
 
 #include "shared/packet/w3gspacket.h"
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QJsonValue>
 
-class GameProtocol
+class GameProtocol : public QObject
 {
+    Q_OBJECT
 public:
-    static W3GSPacket* serialize(W3GSPacket::PacketId packetId, QVariantHash data = QVariantHash());
-    static QVariantHash deserialize(W3GSPacket::PacketId packetId, QByteArrayBuilder data);
+    static GameProtocol* _instance;
+    static GameProtocol* instance(){
+        if (_instance == 0){
+            _instance = new GameProtocol();
+        }
+        return _instance;
+    }
+
+    static W3GSPacket* serialize(W3GSPacket::PacketId packetId, QJsonObject data = QJsonObject());
+    static W3GSPacket* serialize(W3GSPacket::PacketId packetId, QString key, QVariant value);
+    static QJsonObject deserialize(W3GSPacket::PacketId packetId, QByteArrayBuilder data);
 
     // Outgoing Data
-    static W3GSPacket* serialize_W3GS_PING_FROM_HOST();
-    static W3GSPacket* serialize_W3GS_SLOTINFOJOIN(QByteArray slotInfo, quint32 seed, quint8 layout, quint8 players);
-    static W3GSPacket* serialize_W3GS_REJECTJOIN(quint32 reason);
-    static W3GSPacket* serialize_W3GS_PLAYERINFO(quint32 counter, quint8 playerId, QString playerName);
-    static W3GSPacket* serialize_W3GS_PLAYERLEFT(quint8 playerId, quint32 reason);
-    static W3GSPacket* serialize_W3GS_PLAYERLOADED(quint8 playerId);
-    static W3GSPacket* serialize_W3GS_SLOTINFO(QByteArray slotInfo, quint32 seed, quint8 layout, quint8 players);
-    static W3GSPacket* serialize_W3GS_COUNTDOWN_START();
-    static W3GSPacket* serialize_W3GS_COUNTDOWN_END();
-    static W3GSPacket* serialize_W3GS_INCOMING_ACTION(); //TODO
-    static W3GSPacket* serialize_W3GS_CHAT_FROM_HOST(QList<quint8> playerIds, quint8 fromPlayer, quint8 flags,
-                                                     quint32 extraFlags, QString message);
-    static W3GSPacket* serialize_W3GS_LEAVERS();
-    static W3GSPacket* serialize_W3GS_MAPCHECK(QString filePath, quint32 fileSize, quint32 mapInfo, quint32 mapCRC, QByteArray mapSHA1); //TODO
-    static W3GSPacket* serialize_W3GS_MAPPART(); //TODO
-    static W3GSPacket* serialize_W3GS_INCOMING_ACTION2(); //TODO
+    Q_INVOKABLE void serialize_W3GS_PING_FROM_HOST(QJsonObject data, QByteArrayBuilder* out);
+    Q_INVOKABLE void serialize_W3GS_SLOTINFOJOIN(QJsonObject data, QByteArrayBuilder* out);
+    Q_INVOKABLE void serialize_W3GS_REJECTJOIN(QJsonObject data, QByteArrayBuilder* out);
+    Q_INVOKABLE void serialize_W3GS_PLAYERINFO(QJsonObject data, QByteArrayBuilder* out);
+    Q_INVOKABLE void serialize_W3GS_PLAYERLEFT(QJsonObject data, QByteArrayBuilder* out);
+    Q_INVOKABLE void serialize_W3GS_PLAYERLOADED(QJsonObject data, QByteArrayBuilder* out);
+    Q_INVOKABLE void serialize_W3GS_SLOTINFO(QJsonObject data, QByteArrayBuilder* out);
+    Q_INVOKABLE void serialize_W3GS_COUNTDOWN_START(QJsonObject data, QByteArrayBuilder* out);
+    Q_INVOKABLE void serialize_W3GS_COUNTDOWN_END(QJsonObject data, QByteArrayBuilder* out);
+    Q_INVOKABLE void serialize_W3GS_INCOMING_ACTION(QJsonObject data, QByteArrayBuilder* out); //TODO
+    Q_INVOKABLE void serialize_W3GS_CHAT_FROM_HOST(QJsonObject data, QByteArrayBuilder* out);
+    Q_INVOKABLE void serialize_W3GS_LEAVERS(QJsonObject data, QByteArrayBuilder* out);
+    Q_INVOKABLE void serialize_W3GS_MAPCHECK(QJsonObject data, QByteArrayBuilder* out); //TODO
+    Q_INVOKABLE void serialize_W3GS_STARTDOWNLOAD(QJsonObject data, QByteArrayBuilder* out);
+    Q_INVOKABLE void serialize_W3GS_MAPPART(QJsonObject data, QByteArrayBuilder* out); //TODO
+    Q_INVOKABLE void serialize_W3GS_INCOMING_ACTION2(QJsonObject data, QByteArrayBuilder* out); //TODO
 
-    static W3GSPacket* serialize_W3GS_GAMEINFO(); //UDP
-    static W3GSPacket* serialize_W3GS_CREATEGAME(); //UDP
-    static W3GSPacket* serialize_W3GS_REFRESHGAME(); //UDP
-    static W3GSPacket* serialize_W3GS_DECREATEGAME(); //UDP
+    Q_INVOKABLE void serialize_W3GS_SEARCHGAME(QJsonObject data, QByteArrayBuilder* out); // UDP
+    Q_INVOKABLE void serialize_W3GS_GAMEINFO(QJsonObject data, QByteArrayBuilder* out); //UDP
+    Q_INVOKABLE void serialize_W3GS_CREATEGAME(QJsonObject data, QByteArrayBuilder* out); //UDP
+    Q_INVOKABLE void serialize_W3GS_REFRESHGAME(QJsonObject data, QByteArrayBuilder* out); //UDP
+    Q_INVOKABLE void serialize_W3GS_DECREATEGAME(QJsonObject data, QByteArrayBuilder* out); //UDP
 
     // Incoming Data
-    static QVariantHash deserialize_W3GS_REQJOIN(QByteArrayBuilder data);
-    static QVariantHash deserialize_W3GS_LEAVEREQ(QByteArrayBuilder data);
-    static QVariantHash deserialize_W3GS_GAMELOADED_SELF(QByteArrayBuilder data);
-    static QVariantHash deserialize_W3GS_OUTGOING_ACTION(QByteArrayBuilder data);
-    static QVariantHash deserialize_W3GS_OUTGOING_KEEPALIVE(QByteArrayBuilder data);
-    static QVariantHash deserialize_W3GS_CHAT_TO_HOST(QByteArrayBuilder data);
-    static QVariantHash deserialize_W3GS_SEARCHGAME(QByteArrayBuilder data);
-    static QVariantHash deserialize_W3GS_PING_FROM_OTHERS(QByteArrayBuilder data);
-    static QVariantHash deserialize_W3GS_PONG_TO_OTHERS(QByteArrayBuilder data);
-    static QVariantHash deserialize_W3GS_CLIENTINFO(QByteArrayBuilder data);
-    static QVariantHash deserialize_W3GS_STARTDOWNLOAD(QByteArrayBuilder data);
-    static QVariantHash deserialize_W3GS_MAPSIZE(QByteArrayBuilder data);
-    static QVariantHash deserialize_W3GS_MAPPARTOK(QByteArrayBuilder data);
-    static QVariantHash deserialize_W3GS_MAPPARTNOTOK(QByteArrayBuilder data);
-    static QVariantHash deserialize_W3GS_PONG_TO_HOST(QByteArrayBuilder data);
+    Q_INVOKABLE void deserialize_W3GS_REQJOIN(QByteArrayBuilder data, QJsonObject* out);
+    Q_INVOKABLE void deserialize_W3GS_LEAVEREQ(QByteArrayBuilder data, QJsonObject* out);
+    Q_INVOKABLE void deserialize_W3GS_GAMELOADED_SELF(QByteArrayBuilder data, QJsonObject* out);
+    Q_INVOKABLE void deserialize_W3GS_OUTGOING_ACTION(QByteArrayBuilder data, QJsonObject* out);
+    Q_INVOKABLE void deserialize_W3GS_OUTGOING_KEEPALIVE(QByteArrayBuilder data, QJsonObject* out);
+    Q_INVOKABLE void deserialize_W3GS_CHAT_TO_HOST(QByteArrayBuilder data, QJsonObject* out);
+    Q_INVOKABLE void deserialize_W3GS_SEARCHGAME(QByteArrayBuilder data, QJsonObject* out);
+    Q_INVOKABLE void deserialize_W3GS_PING_FROM_OTHERS(QByteArrayBuilder data, QJsonObject* out);
+    Q_INVOKABLE void deserialize_W3GS_PONG_TO_OTHERS(QByteArrayBuilder data, QJsonObject* out);
+    Q_INVOKABLE void deserialize_W3GS_CLIENTINFO(QByteArrayBuilder data, QJsonObject* out);
+    Q_INVOKABLE void deserialize_W3GS_STARTDOWNLOAD(QByteArrayBuilder data, QJsonObject* out);
+    Q_INVOKABLE void deserialize_W3GS_MAPSIZE(QByteArrayBuilder data, QJsonObject* out);
+    Q_INVOKABLE void deserialize_W3GS_MAPPARTOK(QByteArrayBuilder data, QJsonObject* out);
+    Q_INVOKABLE void deserialize_W3GS_MAPPARTNOTOK(QByteArrayBuilder data, QJsonObject* out);
+    Q_INVOKABLE void deserialize_W3GS_PONG_TO_HOST(QByteArrayBuilder data, QJsonObject* out);
 
 private:
     // Purely static, so no class creation
     GameProtocol(){}
-
-    // Disable Copying
-    GameProtocol(const GameProtocol &);
-    GameProtocol& operator=(const GameProtocol &);
 };
 
 #endif // GAMEPROTOCOL_H

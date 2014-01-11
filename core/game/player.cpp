@@ -15,7 +15,6 @@ Player::Player(GameCore *parent) :
 void Player::disconnected(){
     addChat("Player disconnected.", Core::MESSAGE_TYPE_DEFAULT);
     if (mState == ATTACHED){
-        //addChat("while in the lobby (@" + QString::number(mGame->lobby()->elapsed()) + "ms).");
         mGame->removePlayer(this);
     }
     deleteLater();
@@ -23,7 +22,6 @@ void Player::disconnected(){
 
 void Player::readyRead(){
     extractPackets();
-    if (packetQueue.count() > 0) handlePackets();
 }
 
 void Player::addChat(QString s, Core::MessageType type){
@@ -62,30 +60,16 @@ void Player::extractPackets(){
 
         W3GSPacket* packet = new W3GSPacket((W3GSPacket::PacketId) id, data, Packet::FROM_SERVER);
 
-        if (packet->packetId() == W3GSPacket::W3GS_REQJOIN
-                || packet->packetId() == W3GSPacket::W3GS_LEAVEREQ
-                || state() != ATTACHED){
-            packetQueue.append(packet);
-        }
-        else {
+
+        if (state() == ATTACHED && mGame) {
             mGame->queuePlayerPacket(this, packet);
         }
-
-        addChat("incomingdata = " + packet->packetIdString(), Core::MESSAGE_TYPE_DEFAULT);
-    }
-    handlePackets();
-}
-
-void Player::handlePackets(){
-    while (!packetQueue.isEmpty()){
-        Packet* p = packetQueue.dequeue();
-        if (p->protocol() == Packet::PROTOCOL_W3GS && p->packetId() == W3GSPacket::W3GS_REQJOIN)
-            Recv_W3GS_REQJOIN(p->data());
-        else if (p->packetId() == W3GSPacket::W3GS_LEAVEREQ)
-            Recv_W3GS_LEAVEREQ(p->data());
+        else if (packet->packetId() == W3GSPacket::W3GS_REQJOIN){
+            gameCore->joinRequest(this, packet->data());
+        }
         else {
-            addChat("Non-join request packet (0x" + QString::number(p->packetId(), 16) + ") recieved while idle...",
-                    Core::MESSAGE_TYPE_ERROR);
+            addChat("Unhandled packet (0x" + QString::number(packet->packetId(), 16) + ") recieved while idle...",
+                Core::MESSAGE_TYPE_ERROR);
         }
     }
 }
@@ -136,24 +120,4 @@ void Player::Recv_W3GS_REQJOIN(QByteArrayBuilder b){
 
 void Player::sendPacket(W3GSPacket* packet){
     socket->write(packet->toPackedData());
-}
-
-void Player::Send_W3GS_REJECTJOIN(quint32 result){
-    QByteArrayBuilder out;
-    out.insertDWord(result);
-
-    W3GSPacket* packet = new W3GSPacket(W3GSPacket::W3GS_REJECTJOIN, out);
-
-    socket->write(packet->toPackedData());
-    socket->waitForBytesWritten();
-    socket->close();
-}
-
-void Player::Send_W3GS_PING_FROM_HOST(){
-//    QByteArrayBuilder out;
-//    out.insertByte(W3GS_PVC);
-//    out.insertByte(W3GS_REJECTJOIN);
-//    out.insertWord(0x00);
-//    assignLength(out);
-//    socket->write(out);
 }

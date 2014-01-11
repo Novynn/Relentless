@@ -5,6 +5,7 @@
 #include <QTcpServer>
 #include "coreobject.h"
 #include "gamelistener.h"
+#include "shared/qbytearraybuilder.h"
 
 class Player;
 class Game;
@@ -30,6 +31,7 @@ public:
     bool listen(int fromPort, int toPort);
     bool listening(){return listener->isListening();}
     quint16 port(){return listener->serverPort();}
+    void joinRequest(Player *player, QByteArrayBuilder data);
 private:
     GameListener* listener;
     void potientialConnection(int socketDescriptor);

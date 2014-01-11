@@ -31,14 +31,14 @@ void Lobby::welcomePlayer(Player *player){
         if (p == player) continue;
         {
             // Send PLAYERINFO to new player
-            QVariantHash data;
+            QJsonObject data;
             data.insert("player.id", p->playerId());
             data.insert("player.name", p->name());
             player->sendPacket(GameProtocol::serialize(W3GSPacket::W3GS_PLAYERINFO, data));
         }
         {
             // Send PLAYERINFO to all other players about the new player
-            QVariantHash data;
+            QJsonObject data;
             data.insert("player.id", player->playerId());
             data.insert("player.name", player->name());
             p->sendPacket(GameProtocol::serialize(W3GSPacket::W3GS_PLAYERINFO, data));
@@ -46,15 +46,16 @@ void Lobby::welcomePlayer(Player *player){
     }
 
     {
-//        QString filePath = map()->path();
-//        quint32 fileSize = map()->size();
-//        quint32 mapInfo = map()->info();
-//        quint32 mapCRC = map()->CRC();
-//        QByteArray mapSHA1 = map()->SHA1();
+        QJsonObject data;
+        data.insert("filepath", map()->path());
+        data.insert("filesize", (qint64) map()->size());
+        data.insert("mapinfo", (qint64) map()->info());
+        data.insert("mapcrc", (qint64) map()->CRC());
+        data.insert("mapsha1", QString(map()->SHA1()));
 
-//        W3GSPacket* out = GameProtocol::serialize_W3GS_MAPCHECK(filePath, fileSize, mapInfo, mapCRC, mapSHA1);
-//        qDebug() << "Sending W3GS_MAPCHECK\n" << QByteArrayBuilder(out->data()).toReadableString() << "\n\n";
-//        player->sendPacket(out);
+        W3GSPacket* out = GameProtocol::serialize(W3GSPacket::W3GS_MAPCHECK, data);
+        player->addChat("Checking player's map file...");
+        player->sendPacket(out);
     }
 
     foreach(Player* p, mGame->players()){
@@ -68,7 +69,11 @@ void Lobby::welcomePlayer(Player *player){
     }
 }
 
-void Lobby::leavingPlayer(Player *player){
+void Lobby::leavingPlayer(Player *player, uint reason){
+    // Accept the player's leave request
+    player->sendPacket(GameProtocol::serialize(W3GSPacket::W3GS_LEAVERS));
+
+    // Now find their slot and clear it.
     foreach(Slot* slot, slotMap()->getSlots()){
         if (slot->playerId() != player->playerId()) continue;
         slot->setStatus(Slot::SLOT_STATUS_OPEN);
@@ -77,23 +82,38 @@ void Lobby::leavingPlayer(Player *player){
         break;
     }
 
+    // Notify everyone that the player has left and why. Then update their slot information.
     foreach(Player* p, mGame->players()){
+        // Skip the leaving player
         if (p == player) continue;
-        p->sendPacket(Serialize_W3GS_PLAYERLEFT(player));
+        {
+            QVariantHash data;
+            data.insert("player.id", player->playerId());
+            data.insert("reason", reason);
+            p->sendPacket(GameProtocol::serialize(W3GSPacket::W3GS_PLAYERLEFT));
+        }
+
+
         p->sendPacket(Serialize_W3GS_SLOTINFO());
     }
+
+    player->deleteLater();
 }
 
+void Lobby::ping(Player *p){
+    p->sendPacket(GameProtocol::serialize(W3GSPacket::W3GS_PING_FROM_HOST));
+}
 
-W3GSPacket* Lobby::Serialize_W3GS_PLAYERLEFT(Player* player){
-    /*
-     *(BYTE) Player number
-(DWORD) Reason
-*/
-    QByteArrayBuilder out;
-    out.insertByte(player->playerId());
-    out.insertDWord(0x01);
-    return new W3GSPacket(W3GSPacket::W3GS_PLAYERLEFT, out);
+void Lobby::pingAll(){
+    foreach(Player* p, mGame->players()) ping(p);
+}
+
+void Lobby::handlePacket(Player* player, W3GSPacket* p){
+    if (p->packetId() == W3GSPacket::W3GS_LEAVEREQ){
+        QJsonObject data = GameProtocol::deserialize((W3GSPacket::PacketId) p->packetId(), p->data());
+        int reason = data.value("reason").toInt();
+        leavingPlayer(player, reason);
+    }
 }
 
 SlotMap *Lobby::slotMap(){
@@ -107,42 +127,6 @@ Game *Lobby::game(){
 Map *Lobby::map(){
     return mGame->map();
 }
-
-W3GSPacket* Lobby::Serialize_W3GS_PLAYERINFO(Player* player){
-    /*
-     * (DWORD) Player Counter
-     * (BYTE) Player number
-     * (STRING) Player name
-     * (WORD) Unknown (1)
-     * (WORD) AF_INET (2)
-     * (WORD) Port
-     * (DWORD) External IP
-     * (DWORD) Unknown (0)
-     * (DWORD) Unknown (0)
-     * (WORD) AF_INET (2)
-     * (WORD) Port
-     * (DWORD) Internal IP
-     * (DWORD) Unknown (0)
-     * (DWORD) Unknown (0)
-    */
-    QByteArrayBuilder out;
-    out.insertDWord(2);
-    out.insertByte(player->playerId());
-    out.insertString(player->name());
-    out.insertWord(1);
-    out.insertWord(2);
-    out.insertWord(0); // Port
-    out.insertDWord(0); // External
-    out.insertDWord(0);
-    out.insertDWord(0);
-    out.insertWord(2);
-    out.insertWord(0); // Port
-    out.insertDWord(0); // Internal
-    out.insertDWord(0);
-    out.insertDWord(0);
-    return new W3GSPacket(W3GSPacket::W3GS_PLAYERINFO, out);
-}
-
 
 W3GSPacket* Lobby::Serialize_W3GS_SLOTINFOJOIN(Player* player){
     /*
@@ -188,7 +172,6 @@ W3GSPacket* Lobby::Serialize_W3GS_SLOTINFOJOIN(Player* player){
     out.insertByte(player->playerId());
     out.insertDWord(player->socket->peerPort());
     // Peer address
-    //out.insertDWord(player->socket->peerAddress().);
     dword peerAddress = player->socket->peerAddress().toIPv4Address();
     out.insertDWord(peerAddress);
     // End

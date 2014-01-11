@@ -20,17 +20,20 @@ public:
     quint32 state(){return 16;}
 
     void welcomePlayer(Player* player);
-    void leavingPlayer(Player* player);
-    W3GSPacket *Serialize_W3GS_PLAYERINFO(Player *player);
+    void leavingPlayer(Player* player, uint reason = 0x00);
+
+    void ping(Player* p);
+    void pingAll();
+
     W3GSPacket *Serialize_W3GS_SLOTINFO();
     W3GSPacket *Serialize_W3GS_SLOTINFOJOIN(Player *player);
-    W3GSPacket *Serialize_W3GS_PLAYERLEFT(Player *player);
 
     SlotMap *slotMap();
 
     Game* game();
     Map* map();
 
+    void handlePacket(Player *player, W3GSPacket *p);
 private:
     QElapsedTimer* mElapsedTimer;
 

@@ -173,6 +173,10 @@ void GameCore::potientialConnection(int socketDescriptor){
     delete player;
 }
 
+void GameCore::joinRequest(Player* player, QByteArrayBuilder data){
+
+}
+
 void GameCore::attachPlayerToGame(Player* player, quint64 hostCounter){
     player->disconnect(this); // We no longer want to hear from the player
 
@@ -182,12 +186,16 @@ void GameCore::attachPlayerToGame(Player* player, quint64 hostCounter){
         if (game->state() == Game::STATE_LOBBY)
             game->addPlayer(player);
         else if (game->state() == Game::STATE_INSTANCE)
-            player->Send_W3GS_REJECTJOIN(0x10); // REJECTJOIN_STARTED
+            player->sendPacket(GameProtocol::serialize(W3GSPacket::W3GS_REJECTJOIN,
+                                                       "reason", 0x10)); // REJECTJOIN_STARTED
         else
-            player->Send_W3GS_REJECTJOIN(0x09); // REJECTJOIN_FULL
+            player->sendPacket(GameProtocol::serialize(W3GSPacket::W3GS_REJECTJOIN,
+                                                       "reason", 0x09)); // REJECTJOIN_FULL
     }
     else {
         info("[" + player->name() + "] is attempting to join invalid game with host id [" + QString::number(hostCounter) + "]...");
-        player->Send_W3GS_REJECTJOIN(0x07); // REJECTJOIN_INVALID
+
+        player->sendPacket(GameProtocol::serialize(W3GSPacket::W3GS_REJECTJOIN,
+                                                   "reason", 0x07)); // REJECTJOIN_INVALID
     }
 }

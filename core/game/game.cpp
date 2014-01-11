@@ -95,6 +95,8 @@ void Game::tick(){
         foreach(Client* client, mClients){
             client->hostRefresh();
         }
+
+        lobby()->pingAll();
     }
 
     handlePackets();
@@ -104,11 +106,19 @@ void Game::handlePackets(){
     foreach (Player* player, queuedPackets.keys()){
         foreach(W3GSPacket* p, queuedPackets.values(player)){
             if (p->protocol() != Packet::PROTOCOL_W3GS) continue;
-            switch(p->packetId()){
-            case W3GSPacket::W3GS_MAPSIZE:
-                qDebug() << GameProtocol::deserialize_W3GS_MAPSIZE(p->data());
-                break;
+
+            if (state() == STATE_LOBBY){
+                lobby()->handlePacket(player, p);
             }
+            else {
+                // Unhandled for now, ignore!
+            }
+            queuedPackets.remove(player, p);
+//            switch(p->packetId()){
+//            case W3GSPacket::W3GS_MAPSIZE:
+//                qDebug() << GameProtocol::deserialize_W3GS_MAPSIZE(p->data());
+//                break;
+//            }
         }
     }
 }
