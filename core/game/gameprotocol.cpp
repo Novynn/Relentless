@@ -9,7 +9,7 @@ W3GSPacket* GameProtocol::serialize(W3GSPacket::PacketId packetId, QString key, 
 }
 
 W3GSPacket* GameProtocol::serialize(W3GSPacket::PacketId packetId, QJsonObject data){
-    QByteArrayBuilder* out;
+    QByteArrayBuilder* out = new QByteArrayBuilder();
 
     QString method = "serialize_" + W3GSPacket::packetIdToString(packetId);
     bool invoked = staticMetaObject.invokeMethod(instance(),
@@ -137,9 +137,9 @@ W3GSPacket* GameProtocol::serialize(W3GSPacket::PacketId packetId, QJsonObject d
     return packet;
 }
 
-QJsonObject GameProtocol::deserialize(W3GSPacket::PacketId packetId, QByteArrayBuilder data)
+QJsonObject* GameProtocol::deserialize(W3GSPacket::PacketId packetId, QByteArrayBuilder data)
 {
-    QJsonObject* out;
+    QJsonObject* out = new QJsonObject();
 
     QString method = "deserialize_" + W3GSPacket::packetIdToString(packetId);
     bool invoked = staticMetaObject.invokeMethod(instance(),
@@ -150,7 +150,7 @@ QJsonObject GameProtocol::deserialize(W3GSPacket::PacketId packetId, QByteArrayB
 
     qDebug() << "INVOKED: " << invoked << method << "\n" << out;
 
-    return *out;
+    return out;
 }
 
 void GameProtocol::serialize_W3GS_PING_FROM_HOST(QJsonObject data, QByteArrayBuilder* out){

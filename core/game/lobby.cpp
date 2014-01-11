@@ -110,8 +110,8 @@ void Lobby::pingAll(){
 
 void Lobby::handlePacket(Player* player, W3GSPacket* p){
     if (p->packetId() == W3GSPacket::W3GS_LEAVEREQ){
-        QJsonObject data = GameProtocol::deserialize((W3GSPacket::PacketId) p->packetId(), p->data());
-        int reason = data.value("reason").toInt();
+        QJsonObject* data = GameProtocol::deserialize((W3GSPacket::PacketId) p->packetId(), p->data());
+        int reason = data->value("reason").toInt();
         leavingPlayer(player, reason);
     }
 }

@@ -20,7 +20,7 @@ public:
 
     static W3GSPacket* serialize(W3GSPacket::PacketId packetId, QJsonObject data = QJsonObject());
     static W3GSPacket* serialize(W3GSPacket::PacketId packetId, QString key, QVariant value);
-    static QJsonObject deserialize(W3GSPacket::PacketId packetId, QByteArrayBuilder data);
+    static QJsonObject* deserialize(W3GSPacket::PacketId packetId, QByteArrayBuilder data);
 
     // Outgoing Data
     Q_INVOKABLE void serialize_W3GS_PING_FROM_HOST(QJsonObject data, QByteArrayBuilder* out);
