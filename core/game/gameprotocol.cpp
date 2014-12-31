@@ -158,6 +158,16 @@ void GameProtocol::serialize_W3GS_COUNTDOWN_END(QVariantHash data, QByteArrayBui
 void GameProtocol::serialize_W3GS_INCOMING_ACTION(QVariantHash data, QByteArrayBuilder* out){
 }
 void GameProtocol::serialize_W3GS_CHAT_FROM_HOST(QVariantHash data, QByteArrayBuilder* out){
+    QVariantList players = data.value("to").toList();
+    out->insertByte(players.count());
+    for (QVariant player : players) {
+        out->insertByte(player.toUInt());
+    }
+    out->insertByte(data.value("from", 0).toUInt());
+
+    out->insertByte(data.value("flag", 0x10).toUInt());
+    out->insertDWord(data.value("extra_flags", 0).toUInt());
+    out->insertString(data.value("text", "").toString());
 }
 void GameProtocol::serialize_W3GS_LEAVERS(QVariantHash data, QByteArrayBuilder* out){
 }
