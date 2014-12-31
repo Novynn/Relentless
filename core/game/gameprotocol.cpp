@@ -340,5 +340,5 @@ void GameProtocol::deserialize_W3GS_MAPPARTNOTOK(QByteArrayBuilder data, QVarian
 
 void GameProtocol::deserialize_W3GS_PONG_TO_HOST(QByteArrayBuilder data, QVariantHash *out)
 {
-
+    out->insert("tickcount", data.getDWord());
 }

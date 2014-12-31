@@ -114,7 +114,8 @@ void Lobby::tick() {
 
 void Lobby::ping(Player *p){
     p->addChat("Sent Ping");
-    p->sendPacket(GameProtocol::serialize(W3GSPacket::W3GS_PING_FROM_HOST, "tickcount", mElapsedTimer->elapsed()));
+    p->sendPacket(GameProtocol::serialize(W3GSPacket::W3GS_PING_FROM_HOST, "tickcount", elapsed()));
+    playerTickCounts.insert(p, elapsed());
 }
 
 void Lobby::pingAll(){
@@ -146,6 +147,13 @@ void Lobby::handlePacket(Player* player, W3GSPacket* p){
                 slotChangeRequest(player, message);
             }
         }
+    }
+    if (p->packetId() == W3GSPacket::W3GS_PONG_TO_HOST) {
+        QVariantHash* data = GameProtocol::deserialize((W3GSPacket::PacketId) p->packetId(), p->data());
+        quint32 tick = data->value("tickcount", 0).toUInt();
+        quint32 lastTick = playerTickCounts.value(player, 0);
+        playerTickCounts.remove(player);
+        sendMessageToPlayer(player, player, "Ping: " + QString::number(tick - lastTick) + "ms", 0x10, 0x00);
     }
 }
 
