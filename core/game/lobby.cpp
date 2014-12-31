@@ -87,18 +87,15 @@ void Lobby::leavingPlayer(Player *player, uint reason){
     // Notify everyone that the player has left and why. Then update their slot information.
     foreach(Player* p, mGame->players()){
         // Skip the leaving player
-        if (p == player) continue;
-        {
+        if (p != player){
             QVariantHash data;
             data.insert("player.id", player->playerId());
             data.insert("reason", reason);
             p->sendPacket(GameProtocol::serialize(W3GSPacket::W3GS_PLAYERLEFT));
+            p->sendPacket(Serialize_W3GS_SLOTINFO());
         }
-
-
-        p->sendPacket(Serialize_W3GS_SLOTINFO());
     }
-
+    game()->removePlayer(player);
     player->deleteLater();
 }
 
@@ -109,7 +106,7 @@ void Lobby::tick() {
         client->hostRefresh();
     }
 
-    pingAll();
+    //pingAll();
 
     lastTick = QDateTime::currentDateTime();
 }
