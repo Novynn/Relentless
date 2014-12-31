@@ -109,7 +109,7 @@ void Lobby::tick() {
         client->hostRefresh();
     }
 
-    lobby()->pingAll();
+    pingAll();
 
     lastTick = QDateTime::currentDateTime();
 }
