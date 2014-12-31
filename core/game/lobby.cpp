@@ -47,7 +47,7 @@ void Lobby::welcomePlayer(Player *player){
         }
     }
 
-    {
+    if (false) {
         QJsonObject data;
         data.insert("filepath", map()->path());
         data.insert("filesize", (qint64) map()->size());
@@ -67,7 +67,9 @@ void Lobby::welcomePlayer(Player *player){
 //        data.insert("map.layout", mGame->map()->layoutStyle());
 //        data.insert("slots.count", mGame->map()->numPlayers());
 //        p->sendPacket(GameProtocol::serialize(W3GSPacket::W3GS_SLOTINFO, data));
-        p->sendPacket(Serialize_W3GS_SLOTINFO());
+        if (p != player) {
+            p->sendPacket(Serialize_W3GS_SLOTINFO());
+        }
     }
 }
 
@@ -115,11 +117,14 @@ void Lobby::tick() {
 }
 
 void Lobby::ping(Player *p){
-    //p->sendPacket(GameProtocol::serialize(W3GSPacket::W3GS_PING_FROM_HOST));
+    p->addChat("Sent Ping");
+    p->sendPacket(GameProtocol::serialize(W3GSPacket::W3GS_PING_FROM_HOST));
 }
 
 void Lobby::pingAll(){
-    foreach(Player* p, mGame->players()) ping(p);
+    foreach(Player* p, mGame->players()){
+        ping(p);
+    }
 }
 
 void Lobby::handlePacket(Player* player, W3GSPacket* p){
