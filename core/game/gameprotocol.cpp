@@ -233,18 +233,23 @@ void GameProtocol::serialize_W3GS_MAPCHECK(QJsonObject data, QByteArrayBuilder* 
      * (DWORD) File CRC encryption
      * (DWORD) File SHA-1 hash
     */
+    qDebug() << data;
     QString filePath = data.value("filepath").toString();
     quint32 fileSize = (quint32) data.value("filesize").toInt();
     quint32 mapInfo = (quint32) data.value("mapinfo").toInt();
     quint32 mapCRC = (quint32) data.value("mapcrc").toInt();
-    QByteArray mapSHA1 = (quint32) data.value("mapsha1").toInt();
+    QJsonArray byteArray = data.value("mapsha1").toArray();
+    QByteArrayBuilder mapSHA1;
+    for (QJsonValue val : byteArray) {
+        mapSHA1.insertByte((quint8) val.toInt());
+    }
 
     out->insertDWord(1); // Unknown
     out->insertString(filePath);
     out->insertDWord(fileSize);
     out->insertDWord(mapInfo);
     out->insertDWord(mapCRC);
-    out->insertDWord(mapSHA1);
+    out->insertVoid(mapSHA1);
 }
 
 void GameProtocol::serialize_W3GS_STARTDOWNLOAD(QJsonObject data, QByteArrayBuilder* out){
