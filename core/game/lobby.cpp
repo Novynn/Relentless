@@ -6,6 +6,8 @@ Lobby::Lobby(Game *parent) :
     QObject(parent), mGame(parent){
     mElapsedTimer = new QElapsedTimer;
     mElapsedTimer->start();
+
+    lastTick = QDateTime::fromMSecsSinceEpoch(0);
 }
 
 void Lobby::welcomePlayer(Player *player){
@@ -100,8 +102,20 @@ void Lobby::leavingPlayer(Player *player, uint reason){
     player->deleteLater();
 }
 
+void Lobby::tick() {
+    if (lastTick.msecsTo(QDateTime::currentDateTime()) < 5000) return;
+
+    foreach(Client* client, mClients){
+        client->hostRefresh();
+    }
+
+    lobby()->pingAll();
+
+    lastTick = QDateTime::currentDateTime();
+}
+
 void Lobby::ping(Player *p){
-    p->sendPacket(GameProtocol::serialize(W3GSPacket::W3GS_PING_FROM_HOST));
+    //p->sendPacket(GameProtocol::serialize(W3GSPacket::W3GS_PING_FROM_HOST));
 }
 
 void Lobby::pingAll(){
@@ -205,16 +219,16 @@ W3GSPacket* Lobby::Serialize_W3GS_SLOTINFO(){
         slotData.insertVoid(slot->toByteArray());
         qDebug() << slot->team() << slot->colour() << slot->playerId() << slot->status();
     }
-    slotData.insertDWord(mGame->randomSeed());
-    slotData.insertByte(mGame->map()->layoutStyle());
-    slotData.insertByte(mGame->map()->numPlayers());
-    qDebug() << "data: " << mGame->randomSeed() << mGame->map()->layoutStyle() << mGame->map()->numPlayers();
+//    slotData.insertDWord(mGame->randomSeed());
+//    slotData.insertByte(mGame->map()->layoutStyle());
+//    slotData.insertByte(mGame->map()->numPlayers());
+//    qDebug() << "data: " << mGame->randomSeed() << mGame->map()->layoutStyle() << mGame->map()->numPlayers();
 
     QByteArrayBuilder out;
     out.insertWord(slotData.size());
     out.insertVoid(slotData);
 
-    return new W3GSPacket(W3GSPacket::W3GS_SLOTINFO, out);
+    return new W3GSPacket(W3GSPacket::W3GS_SLOTINFO, slotData);
 }
 
 

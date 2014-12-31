@@ -175,7 +175,7 @@ void GameCore::potientialConnection(int socketDescriptor){
 }
 
 void GameCore::joinRequest(Player* player, QByteArrayBuilder data){
-
+    player->Recv_W3GS_REQJOIN(data);
 }
 
 void GameCore::attachPlayerToGame(Player* player, quint64 hostCounter){

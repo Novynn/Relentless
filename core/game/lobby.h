@@ -25,6 +25,8 @@ public:
     void ping(Player* p);
     void pingAll();
 
+    void tick();
+
     W3GSPacket *Serialize_W3GS_SLOTINFO();
     W3GSPacket *Serialize_W3GS_SLOTINFOJOIN(Player *player);
 
@@ -36,6 +38,7 @@ public:
     void handlePacket(Player *player, W3GSPacket *p);
 private:
     QElapsedTimer* mElapsedTimer;
+    QDateTime lastTick;
 
     Game* mGame;
 signals:

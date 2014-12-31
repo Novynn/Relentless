@@ -13,7 +13,7 @@ Game::Game(GameCore *parent) :
     mRandomSeed = gameCore->core()->uptime();
 
     connect(mTickTimer, SIGNAL(timeout()), this, SLOT(tick()));
-    mTickTimer->start(5000);
+    mTickTimer->start(50);
 }
 
 void Game::upgradeIdleToLobby(){
@@ -91,15 +91,11 @@ void Game::queuePlayerPacket(Player* player, W3GSPacket* packet){
 }
 
 void Game::tick(){
-    if (state() == STATE_LOBBY){
-        foreach(Client* client, mClients){
-            client->hostRefresh();
-        }
-
-        lobby()->pingAll();
-    }
-
     handlePackets();
+
+    if (state() == STATE_LOBBY){
+        lobby()->tick();
+    }
 }
 
 void Game::handlePackets(){
@@ -114,11 +110,6 @@ void Game::handlePackets(){
                 // Unhandled for now, ignore!
             }
             queuedPackets.remove(player, p);
-//            switch(p->packetId()){
-//            case W3GSPacket::W3GS_MAPSIZE:
-//                qDebug() << GameProtocol::deserialize_W3GS_MAPSIZE(p->data());
-//                break;
-//            }
         }
     }
 }

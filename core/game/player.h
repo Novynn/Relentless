@@ -47,6 +47,7 @@ public:
     void sendPacket(W3GSPacket *packet);
     void Recv_W3GS_LEAVEREQ(QByteArrayBuilder b);
     void Send_W3GS_LEAVERS();
+    void Recv_W3GS_REQJOIN(QByteArrayBuilder b);
 private:
     QQueue<Packet*> packetQueue;
     QString mPlayerName;
@@ -58,7 +59,7 @@ private:
     bool assignLength(QByteArray &content, int offset = 2) const;
 
 
-    void Recv_W3GS_REQJOIN(QByteArrayBuilder b);
+
 
     unsigned char mPId;
 
