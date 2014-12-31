@@ -67,7 +67,7 @@ void Lobby::welcomePlayer(Player *player){
 //        data.insert("map.layout", mGame->map()->layoutStyle());
 //        data.insert("slots.count", mGame->map()->numPlayers());
 //        p->sendPacket(GameProtocol::serialize(W3GSPacket::W3GS_SLOTINFO, data));
-        p->sendPacket(Serialize_W3GS_SLOTINFO());
+        //p->sendPacket(Serialize_W3GS_SLOTINFO());
     }
 }
 
