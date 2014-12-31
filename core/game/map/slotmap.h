@@ -184,6 +184,16 @@ public:
     QList<Slot*> getSlots(){
         return mSlots;
     }
+
+    Slot* getSlotFromPlayerId(quint8 playerId) {
+        for (Slot* slot : getSlots()) {
+            if (slot->playerId() == playerId) {
+                return slot;
+            }
+        }
+        return 0;
+    }
+
 private:
     QList<Slot*> mSlots;
 };

@@ -196,7 +196,62 @@ void GameProtocol::deserialize_W3GS_OUTGOING_KEEPALIVE(QByteArrayBuilder data, Q
 
 void GameProtocol::deserialize_W3GS_CHAT_TO_HOST(QByteArrayBuilder data, QVariantHash *out)
 {
+//    (BYTE) Total
 
+//    For each total:
+//    (BYTE) To player number
+//    (BYTE) From player number
+//    (BYTE) Flags
+
+//    For Flag 0x10:
+//       (STRING) Message
+//    For Flag 0x11:
+//       (BYTE) Team
+//    For Flag 0x12:
+//       (BYTE) Color
+//    For Flag 0x13:
+//       (BYTE) Race
+//    For Flag 0x14:
+//       (BYTE) Handicap
+//    For Flag 0x20:
+//       (DWORD) Extra Flags
+//       (STRING) Message
+
+    quint8 total = data.getByte();
+    out->insert("total", total);
+    QVariantList messages;
+    for (int i = 0; i < total; i++) {
+        QVariantHash message;
+        quint8 to = data.getByte();
+        quint8 from = data.getByte();
+        quint8 flag = data.getByte();
+        message["to"] = to;
+        message["from"] = from;
+        message["flag"] = flag;
+        switch (flag){
+        case 0x10: // Normal chat (lobby)
+            message["text"] = data.getString();
+            break;
+        case 0x11: // Switch Teams
+            message["team"] = data.getByte(); // Team
+            break;
+        case 0x12: // Change Color
+            message["color"] = data.getByte(); // Color
+            break;
+        case 0x13: // Change Race
+            message["race"] = data.getByte(); // Race
+            break;
+        case 0x14: // Change Handicap
+            message["handicap"] = data.getByte(); // Handicap
+            break;
+        case 0x20: // In-game Message
+            message["extra_flags"] = data.getDWord(); // Extra flags
+            message["text"] = data.getString(); // Message
+            break;
+        }
+        messages.append(message);
+    }
+    out->insert("messages", messages);
 }
 
 void GameProtocol::deserialize_W3GS_SEARCHGAME(QByteArrayBuilder data, QVariantHash *out)

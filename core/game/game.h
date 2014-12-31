@@ -68,6 +68,15 @@ public:
         return mPlayers;
     }
 
+    Player* playerById(int id) {
+        for (Player* player : players()) {
+            if (player->playerId() == id) {
+                return player;
+            }
+        }
+        return 0;
+    }
+
     dword randomSeed(){
         return mRandomSeed;
     }

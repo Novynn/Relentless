@@ -36,6 +36,9 @@ public:
     Map* map();
 
     void handlePacket(Player *player, W3GSPacket *p);
+    void slotChangeRequest(Player *player, QVariantHash data);
+    void sendMessageToPlayer(Player *from, Player *to, QString text, quint8 flag, quint32 extraFlags);
+    void sendMessageToPlayers(Player *from, QList<Player *> to, QString text, quint8 flag, quint32 extraFlags);
 private:
     QElapsedTimer* mElapsedTimer;
     QDateTime lastTick;
