@@ -80,7 +80,7 @@ bool Game::addPlayer(Player *p){
 
 bool Game::removePlayer(Player *p){
     mPlayers.removeOne(p);
-    if (state() == STATE_LOBBY){
+    if (state() == STATE_LOBBY && p->state() == Player::ATTACHED){
         lobby()->leavingPlayer(p);
     }
     return true;

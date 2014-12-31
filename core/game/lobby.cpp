@@ -95,6 +95,7 @@ void Lobby::leavingPlayer(Player *player, uint reason){
             p->sendPacket(Serialize_W3GS_SLOTINFO());
         }
     }
+    player->setLeaving();
     game()->removePlayer(player);
     player->deleteLater();
 }

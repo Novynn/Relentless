@@ -19,6 +19,7 @@ public:
     enum State {
         IDLE,
         ATTACHED,
+        LEAVING,
         UNKNOWN
     };
 
@@ -34,6 +35,9 @@ public:
     void attachToGame(Game* game){
         mState = ATTACHED;
         mGame = game;
+    }
+    void setLeaving() {
+        mState = LEAVING;
     }
 
     void setPlayerId(unsigned char pId){
