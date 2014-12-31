@@ -237,14 +237,14 @@ void GameProtocol::serialize_W3GS_MAPCHECK(QJsonObject data, QByteArrayBuilder* 
     quint32 fileSize = (quint32) data.value("filesize").toInt();
     quint32 mapInfo = (quint32) data.value("mapinfo").toInt();
     quint32 mapCRC = (quint32) data.value("mapcrc").toInt();
-    QByteArray mapSHA1 = data.value("mapsha1").toString().toLatin1();
+    QByteArray mapSHA1 = (quint32) data.value("mapsha1").toInt();
 
     out->insertDWord(1); // Unknown
     out->insertString(filePath);
     out->insertDWord(fileSize);
     out->insertDWord(mapInfo);
     out->insertDWord(mapCRC);
-    out->insertVoid(mapSHA1);
+    out->insertDWord(mapSHA1);
 }
 
 void GameProtocol::serialize_W3GS_STARTDOWNLOAD(QJsonObject data, QByteArrayBuilder* out){
