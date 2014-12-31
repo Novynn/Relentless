@@ -26,36 +26,17 @@ public:
     virtual uint packetId() const = 0;
     virtual QString packetIdString() const = 0;
 
-    QByteArray data() const {
-        return mData;
-    }
-    void setData(QByteArray data){
-        mData = data;
-    }
+    QByteArray data() const;
+    void setData(QByteArray data);
 
-    qint64 activeTime() const {
-        return mActiveTime;
-    }
-    void setActiveTime(qint64 time){
-        mActiveTime = time;
-    }
+    qint64 activeTime() const;
+    void setActiveTime(qint64 time);
 
-    Locality locality() const {
-        return mLocality;
-    }
+    Locality locality() const;
+    void setLocality(Locality l);
 
-    void setLocality(Locality l){
-        mLocality = l;
-    }
-
-    uint importance() const {
-        return mImportance;
-    }
-
-    void setImportance(uint i){
-        mImportance = i;
-    }
-
+    uint importance() const;
+    void setImportance(uint i);
     inline void setImportant(){
         setImportance(100);
     }
@@ -63,8 +44,7 @@ public:
 private:
     virtual void stripHeader() = 0;
 protected:
-    Packet(QByteArray data = QByteArray(), Locality from = FROM_LOCAL, uint importance = 1, qint64 activeTime = QDateTime::currentMSecsSinceEpoch())
-        : mData(data), mLocality(from), mImportance(importance), mActiveTime(activeTime){}
+    Packet(QByteArray data = QByteArray(), Locality from = FROM_LOCAL, uint importance = 1, qint64 activeTime = QDateTime::currentMSecsSinceEpoch());
 
     QByteArray mData;
     Locality mLocality;

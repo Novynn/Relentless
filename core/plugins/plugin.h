@@ -7,6 +7,8 @@
 #include <QJsonObject>
 #include "shared/MessageOrigin.h"
 
+class Packet;
+
 class Plugin : public QObject
 {
     Q_OBJECT
@@ -27,6 +29,8 @@ public:
 public slots:
     void newClient(QString client){Q_UNUSED(client)}
     void consoleMessage(QString message, MessageOrigin origin){Q_UNUSED(message) Q_UNUSED(origin)}
+    void eventClientIncomingData(QString client, Packet* packet) {Q_UNUSED(client) Q_UNUSED(packet)}
+    void eventClientOutgoingData(QString client, Packet* packet) {Q_UNUSED(client) Q_UNUSED(packet)}
 signals:
     void unloading();
 };

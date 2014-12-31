@@ -10,6 +10,8 @@ win32 {
     QT += widgets
 }
 
+CONFIG += c++11
+
 LIBS += -lz
 
 TARGET = relentless

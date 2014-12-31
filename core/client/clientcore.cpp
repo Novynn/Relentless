@@ -289,6 +289,7 @@ bool ClientCore::newClient(const QString configFile){
     }
     //info("Creating client... (@" + QString::number(core()->uptime()) + "ms)");
     Client* client = new Client(identifier, this, settings);
+    linkClientEvents(client);
     if (!client->load()){
         warning("Configuration of [" + configFile + "] is invalid.");
         client->unload();
@@ -298,9 +299,22 @@ bool ClientCore::newClient(const QString configFile){
     clients.insert(client->getIdentifier(), client);
     //info("Client created! (@" + QString::number(core()->uptime()) + "ms)");
 
-    emit on_newClient(client->getIdentifier());
+    emit eventNewClient(client->getIdentifier());
 
     return true;
+}
+
+void ClientCore::linkClientEvents(Client* client) {
+    this->connect(client, &Client::eventIncomingData, [this, client](Packet* packet){
+        emit eventClientIncomingData(client->getIdentifier(), packet);
+    });
+    this->connect(client, &Client::eventOutgoingData, [this, client](Packet* packet){
+        emit eventClientOutgoingData(client->getIdentifier(), packet);
+    });
+}
+
+void ClientCore::unlinkClientEvents(Client* client) {
+    this->disconnect(client);
 }
 
 Client* ClientCore::getClient(const QString clientAlias){
@@ -322,13 +336,18 @@ bool ClientCore::hasClient(Client* client){
 
 bool ClientCore::removeClient(const QString clientAlias){
     Client* c = clients.value(clientAlias);
-    if (c) delete c;
-    c = 0;
-    return (clients.remove(clientAlias) > 0);
+    if (c){
+        return removeClient(c);
+    }
+    return false;
 }
 
 bool ClientCore::removeClient(Client* client){
-    return removeClient(client->getIdentifier());
+    QString alias = client->getIdentifier();
+    unlinkClientEvents(client);
+    if (client) delete client;
+    client = 0;
+    return (clients.remove(alias) > 0);
 }
 
 void ClientCore::unloadClients(){

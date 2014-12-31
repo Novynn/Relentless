@@ -23,6 +23,7 @@ public:
 
     void loadPlugins(QDir path);
 
+    void linkPlugin(Plugin *plugin);
 private:
     void loadPlugin(QObject *object, QJsonObject metaData);
     QMultiHash<QString, Plugin*> plugins;

@@ -4,8 +4,8 @@ void MainWindowPlugin::load(){
     ShowWindow( GetConsoleWindow(), SW_HIDE );
     window = new MainWindow;
 
-    window->tabifyDockWidget(window->clientsDock, window->gamesDock);
-    window->setTabPosition(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea, QTabWidget::East);
+//    window->tabifyDockWidget(window->clientsDock, window->gamesDock);
+//    window->setTabPosition(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea, QTabWidget::East);
 
     window->show();
 

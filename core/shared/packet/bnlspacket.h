@@ -73,11 +73,21 @@ public:
 private:
     void stripHeader(){
         QByteArrayBuilder content = mData;
-        if (content.size() < 3 || content.size() > 65535) return;
-        word s = content.getWord(); if (s != mData.size()) return;
-        byte i = content.getByte(); if (i != packetId()) return;
-
-        mData = content;
+        if (content.size() < 3 || content.size() > 65535) {
+            qDebug() << "ERROR: Packet out of range.";
+            return;
+        }
+        word s = content.getWord();
+        if (s != mData.size()){
+            qDebug() << "ERROR: Packet size incorrect. Reported: " << s << " Actual: " << mData.size();
+            return;
+        }
+        byte i = content.getByte();
+        if (i != packetId()){
+            qDebug() << "ERROR: Packet reported the wrong Iid.";
+            return;
+        }
+        mData = content.getVoid(content.size());
     }
 
     PacketId mPId;

@@ -29,6 +29,7 @@ public:
         CLIENT_CONNECTING,
         CLIENT_AUTHENTICATING,
         CLIENT_CONNECTED,
+        CLIENT_CONNECTED_BEGIN_HOSTING,
         CLIENT_CONNECTED_HOSTING
     };
 
@@ -72,6 +73,7 @@ public:
     void beginHosting(Game *game);
     void hostRefresh();
     void endHosting();
+    void RequestGameList();
 private:
     // BNLS Packet handling
     void Recv_BNLS_CHOOSENLSREVISION(QByteArrayBuilder b);
@@ -89,6 +91,7 @@ private:
     void Recv_SID_ENTERCHAT(QByteArrayBuilder b);
     void Recv_SID_CHATEVENT(QByteArrayBuilder b);
     void Recv_SID_STARTADVEX3(QByteArrayBuilder b);
+    void Recv_SID_GETADVLISTEX(QByteArrayBuilder b);
     //
 
     void send(Packet* p);
@@ -152,30 +155,33 @@ private:
 signals:
     void eventConnecting();
     void eventConnected();
-    void eventLogin();
+    void eventLoggingIn();
+    void eventLoggedIn();
+    void eventEnteredChat(QString);
     void eventError();
     void eventWarning();
     void eventInfo();
     void eventDisconnected();
 
 
-    void eventIncomingData();
-    void eventOutgoingData();
+    void eventIncomingData(Packet* p);
+    void eventOutgoingData(Packet* p);
 
     void eventInitializing();
     void eventTerminating();
 
-    void eventServerInfo();
-    void eventServerError();
-    void eventUserTalk();
-    void eventUserEmote();
-    void eventUserWhisper();
-    void eventUserJoins();
-    void eventUserLeaves();
-    void eventUserInChannel();
-    void eventFlagUpdate();
-    void eventChannelJoin(QString);
-    void eventChannelLeave();
+    void eventServerInfo(QString username, QString text);
+    void eventServerError(QString username, QString text);
+    void eventUserTalk(QString channel, QString username, QString text);
+    void eventUserEmote(QString channel, QString username, QString text);
+    void eventUserWhisper(QString username, QString text);
+    void eventWhisperSent(QString username, QString text);
+    void eventUserJoins(QString channel, QString username, QString flags);
+    void eventUserLeaves(QString channel, QString username, QString flags);
+    void eventUserInChannel(QString channel, QString username, QString flags);
+    void eventFlagUpdate(QString channel, QString username, QString flags);
+    void eventChannelJoin(QString joiningChannel);
+    void eventChannelLeave(QString leavingChannel);
     void eventMessagePrepared(); // "PressedEnter"
     void eventMessageSent();
     void eventMessageQueued();

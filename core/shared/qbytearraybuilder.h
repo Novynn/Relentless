@@ -16,12 +16,16 @@ class QByteArrayBuilder : public QByteArray
 public:
     QByteArrayBuilder();
     QByteArrayBuilder(QByteArray data);
-
-    static QByteArrayBuilder fromWord(word value);
-    static QByteArrayBuilder fromDWord(dword value);
+    static QByteArrayBuilder fromDWord(dword data) {
+        QByteArrayBuilder b;
+        b.insertDWord(data);
+        return b;
+    }
 
     QString toReadableString();
-    QString toReadableString(QByteArray data);
+    static QString toReadableString(QByteArray data);
+    QString toDecimalString();
+    static QString toDecimalString(QByteArray data);
 
     byte getByte();
     word getWord();
@@ -38,15 +42,35 @@ public:
     QString peekString(int offset = 0);
     QString peekString(int offset, int len);
     QByteArray peekVoid(int offset, int len);
+    float peekFloat(int offset = 0);
     //
     void insertByte(const byte &value);
     void insertWord(const word &value);
     void insertDWord(const dword &value);
     void insertQWord(const qword &value);
-    void insertString(QString s, bool nullTerminated = true);
+    void insertString(const QString &s, int length = -1);
     void insertVoid(const QByteArray &value);
+    float getFloat();
+    void insertFloat(const float &value);
 
-    QString toDecimalString();
+    quint64 getPointer() {
+        return pointer;
+    }
+
+    void reset() {
+        pointer = 0;
+    }
+
+    void clear() {
+        QByteArray::clear();
+        reset();
+    }
+
+    int size() const {
+        return QByteArray::size() - pointer;
+    }
+private:
+    quint64 pointer = 0;
 };
 
 #endif // QBYTEARRAYBUILDER_H

@@ -100,7 +100,8 @@ void GameCore::newGame(Game* game){
             warning(QString("%1@%2 \t\t [%3]").arg(userId, client->realm(), "DISABLED"));
             continue;
         }
-        if (client->status() == Client::CLIENT_CONNECTED_HOSTING){
+        if (client->status() == Client::CLIENT_CONNECTED_HOSTING ||
+            client->status() == Client::CLIENT_CONNECTED_BEGIN_HOSTING){
             warning(QString("%1@%2 \t\t [%3]").arg(userId, client->realm(), "BUSY"));
             continue;
         }

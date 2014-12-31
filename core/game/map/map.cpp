@@ -621,7 +621,7 @@ bool Map::load(const QString mapPath){
         mapNumTeams = rawMapNumTeams;
 
         mMapWidth = (quint16) rawMapWidth;
-        mMapHeight = (quint16) rawMapWidth;
+        mMapHeight = (quint16) rawMapHeight;
 
         mMapNumPlayers = mapNumPlayers;
         mMapNumTeams = mapNumTeams;

@@ -175,12 +175,26 @@ public:
 private:
     void stripHeader(){
         QByteArrayBuilder content = mData;
-        if (content.size() < 4 || content.size() > 65535) return;
-        byte p = content.getByte(); if (p != PROTOCOL_BNCS) return;
-        byte i = content.getByte(); if (i != packetId()) return;
-        word s = content.getWord(); if (s != mData.size()) return;
-
-        mData = content;
+        if (content.size() < 4 || content.size() > 65535) {
+            qDebug() << "ERROR: Packet out of range.";
+            return;
+        }
+        byte p = content.getByte();
+        if (p != PROTOCOL_BNCS) {
+            qDebug() << "ERROR: Packet not a BNCS packet.";
+            return;
+        }
+        byte i = content.getByte();
+        if (i != packetId()){
+            qDebug() << "ERROR: Packet reported the wrong Iid.";
+            return;
+        }
+        word s = content.getWord();
+        if (s != mData.size()){
+            qDebug() << "ERROR: Packet size incorrect. Reported: " << s << " Actual: " << mData.size();
+            return;
+        }
+        mData = content.getVoid(content.size());
     }
 
     PacketId mPId;

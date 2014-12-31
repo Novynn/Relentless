@@ -37,6 +37,47 @@ QVariantHash ClientProtocol::Deserialize_SID_STARTADVEX3(QByteArrayBuilder b){
     return out;
 }
 
+QVariantHash ClientProtocol::Deserialize_SID_GETADVLISTEX(QByteArrayBuilder b)
+{
+    QVariantHash out;
+    quint32 count = b.peekDWord();
+    out["count"] = count;
+
+    if (count > 20) {
+        // Something went wrong!
+        qDebug() << "ERROR: Malformed games count returned.";
+        return out;
+    }
+    b.getDWord();
+    if (count == 0) {
+        out["status"] = b.getDWord();
+    }
+    else {
+        QVariantList games;
+        QVariantHash game;
+        for (uint i = 0; i < count; i++) {
+            game.clear();
+            game["type"] = b.getDWord();
+            game["language"] = b.getDWord();
+            game["address_family"] = b.getWord();
+            game["port"] = b.getWord();
+            game["ip"] = b.getDWord();
+            b.getDWord(); // 0
+            b.getDWord(); // 0
+            game["status"] = b.getDWord(); // 0x10 = Public, 0x11 = Private
+            game["elapsed"] = b.getDWord(); // In seconds
+            game["name"] = b.getString();
+            game["password"] = b.getString();
+            game["slots"] = b.getByte();
+            game["counter"] = b.getString(8);
+            game["statstring"] = QByteArray(b.getString().toLocal8Bit());
+            games.append(game);
+        }
+        out["games"] = games;
+    }
+    return out;
+}
+
 QVariantHash ClientProtocol::Deserialize_SID_ENTERCHAT(QByteArrayBuilder b){
     QVariantHash out;
     out["uname"] = b.getString();       // (STRING) Unique name
@@ -245,19 +286,19 @@ QVariantHash ClientProtocol::Deserialize_SID_PING(QByteArrayBuilder in){
 BNCSPacket* ClientProtocol::Serialize_SID_AUTH_INFO(){
     QByteArrayBuilder out;
     out.insertDWord(0);                     //    (DWORD) Protocol ID (0)
-    out.insertString("68XI", false);        //    (DWORD) Platform ID
+    out.insertString("68XI", 4);        //    (DWORD) Platform ID
     // TODO
     if (true)
-        out.insertString("PX3W", false);
+        out.insertString("PX3W", 4);
     else
-        out.insertString("3RAW", false);    //    (DWORD) Product ID
+        out.insertString("3RAW", 4);    //    (DWORD) Product ID
     out.insertDWord(0x1a);                  //    (DWORD) Version Byte
     out.insertDWord(0);                     //    (DWORD) Product language*
     //
-    out.insertByte(0xc0);
-    out.insertByte(0xa8);
-    out.insertByte(0x01);
-    out.insertByte(0x03);                   //    (DWORD) Local IP for NAT compatibility*
+    out.insertByte(0x7F);
+    out.insertByte(0x00);
+    out.insertByte(0x00);
+    out.insertByte(0x01);                   //    (DWORD) Local IP for NAT compatibility*
     //
     out.insertByte(0x30);
     out.insertByte(0xfd);
@@ -318,4 +359,18 @@ BNCSPacket* ClientProtocol::Serialize_SID_NETGAMEPORT(int port){
     QByteArrayBuilder out;
     out.insertWord(port);
     return new BNCSPacket(BNCSPacket::SID_NETGAMEPORT, out);
+}
+
+BNCSPacket *ClientProtocol::Serialize_SID_GETADVLISTEX(quint16 gameType, quint16 subGameType, quint32 filter, quint32 count, QString name, QString password, QString statstring)
+{
+    QByteArrayBuilder out;
+    out.insertWord(gameType);
+    out.insertWord(subGameType);
+    out.insertDWord(filter);
+    out.insertDWord(0x00);
+    out.insertDWord(count);
+    out.insertString(name);
+    out.insertString(password);
+    out.insertString(statstring);
+    return new BNCSPacket(BNCSPacket::SID_GETADVLISTEX, out);
 }

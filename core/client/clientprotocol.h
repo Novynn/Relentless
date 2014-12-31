@@ -43,6 +43,10 @@ public:
     BNCSPacket* Serialize_SID_STOPADV();
     BNCSPacket* Serialize_SID_STARTADVEX3(quint32 state, quint32 uptime, quint16 gameType, quint16 subGameType, quint32 ladderType, QString gameName, QString gamePassword, QByteArray statString);
     BNCSPacket* Serialize_SID_NETGAMEPORT(int port);
+    BNCSPacket* Serialize_SID_GETADVLISTEX(quint16 gameType, quint16 subGameType,
+                                           quint32 filter, quint32 count,
+                                           QString name, QString password,
+                                           QString statstring);
 
     QVariantHash Deserialize_SID_PING(QByteArrayBuilder b);
     QVariantHash Deserialize_SID_AUTH_INFO(QByteArrayBuilder b);
@@ -52,6 +56,7 @@ public:
     QVariantHash Deserialize_SID_ENTERCHAT(QByteArrayBuilder b);
     QVariantHash Deserialize_SID_CHATEVENT(QByteArrayBuilder b);
     QVariantHash Deserialize_SID_STARTADVEX3(QByteArrayBuilder b);
+    QVariantHash Deserialize_SID_GETADVLISTEX(QByteArrayBuilder b);
 private:
 
 };
