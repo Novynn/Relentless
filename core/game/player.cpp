@@ -48,6 +48,7 @@ void Player::extractPackets(){
     if (socket->bytesAvailable() < 4)
         return;
     while (socket->bytesAvailable() >= 4){
+        addChat("Player data recieved");
         QByteArrayBuilder block = socket->peek(4);
         if (block.size() < 4 )
             break;
@@ -56,10 +57,13 @@ void Player::extractPackets(){
 
         int size = block.peekWord(2);
         int id = block.peekByte(1);
+        if (socket->bytesAvailable() < size) {
+            break;
+        }
         QByteArray data = socket->read(size);
 
         W3GSPacket* packet = new W3GSPacket((W3GSPacket::PacketId) id, data, Packet::FROM_SERVER);
-
+        qDebug() << "Player packet: " << packet;
 
         if (state() == ATTACHED && mGame) {
             mGame->queuePlayerPacket(this, packet);
