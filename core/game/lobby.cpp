@@ -152,8 +152,11 @@ void Lobby::handlePacket(Player* player, W3GSPacket* p){
         QVariantHash* data = GameProtocol::deserialize((W3GSPacket::PacketId) p->packetId(), p->data());
         quint32 tick = data->value("tickcount", 0).toUInt();
         quint32 lastTick = playerTickCounts.value(player, 0);
+        quint32 roundTrip = elapsed();
         playerTickCounts.remove(player);
-        sendMessageToPlayer(player, player, "Ping: " + QString::number(tick - lastTick) + "ms", 0x10, 0x00);
+        sendMessageToPlayer(player, player,
+                            QString("Ping: %1ms (%2ms round trip)").arg(tick - lastTick, roundTrip - lastTick),
+                            0x10);
     }
 }
 

@@ -12,13 +12,11 @@ W3GSPacket* GameProtocol::serialize(W3GSPacket::PacketId packetId, QVariantHash 
     QByteArrayBuilder* out = new QByteArrayBuilder();
 
     QString method = "serialize_" + W3GSPacket::packetIdToString(packetId);
-    bool invoked = staticMetaObject.invokeMethod(instance(),
+    staticMetaObject.invokeMethod(instance(),
                                   method.toLatin1().constData(),
                                   Qt::DirectConnection,
                                   Q_ARG(QVariantHash, data),
                                   Q_ARG(QByteArrayBuilder*, out));
-
-//    qDebug() << "INVOKED: " << invoked << method << "\n" << qPrintable(out->toReadableString());
 
     W3GSPacket* packet = new W3GSPacket(packetId, *out);
     return packet;
@@ -29,14 +27,11 @@ QVariantHash* GameProtocol::deserialize(W3GSPacket::PacketId packetId, QByteArra
     QVariantHash* out = new QVariantHash();
 
     QString method = "deserialize_" + W3GSPacket::packetIdToString(packetId);
-    bool invoked = staticMetaObject.invokeMethod(instance(),
+    staticMetaObject.invokeMethod(instance(),
                                   method.toLatin1().constData(),
                                   Qt::DirectConnection,
                                   Q_ARG(QByteArrayBuilder, data),
                                   Q_ARG(QVariantHash*, out));
-
-//    qDebug() << "INVOKED: " << invoked << method << "\n" << out;
-
     return out;
 }
 
@@ -60,10 +55,13 @@ void GameProtocol::serialize_W3GS_SLOTINFOJOIN(QVariantHash data, QByteArrayBuil
      * (BYTE) Computer type
      * (BYTE) Handicap
      */
-    QByteArray slotInfo;
-    quint32 seed;
-    quint8 layout;
-    quint8 players;
+
+    Q_UNUSED(data)
+    Q_UNUSED(out)
+//    QByteArray slotInfo;
+//    quint32 seed;
+//    quint8 layout;
+//    quint8 players;
 //    QByteArrayBuilder slotData;
 
 //    int count = game->slotMap()->getSlots().count();
@@ -148,14 +146,24 @@ void GameProtocol::serialize_W3GS_PLAYERLEFT(QVariantHash data, QByteArrayBuilde
     out->insertDWord(reason);
 }
 void GameProtocol::serialize_W3GS_PLAYERLOADED(QVariantHash data, QByteArrayBuilder* out){
+    Q_UNUSED(data)
+    Q_UNUSED(out)
 }
 void GameProtocol::serialize_W3GS_SLOTINFO(QVariantHash data, QByteArrayBuilder* out){
+    Q_UNUSED(data)
+    Q_UNUSED(out)
 }
 void GameProtocol::serialize_W3GS_COUNTDOWN_START(QVariantHash data, QByteArrayBuilder* out){
+    Q_UNUSED(data)
+    Q_UNUSED(out)
 }
 void GameProtocol::serialize_W3GS_COUNTDOWN_END(QVariantHash data, QByteArrayBuilder* out){
+    Q_UNUSED(data)
+    Q_UNUSED(out)
 }
 void GameProtocol::serialize_W3GS_INCOMING_ACTION(QVariantHash data, QByteArrayBuilder* out){
+    Q_UNUSED(data)
+    Q_UNUSED(out)
 }
 void GameProtocol::serialize_W3GS_CHAT_FROM_HOST(QVariantHash data, QByteArrayBuilder* out){
     QVariantList players = data.value("to").toList();
@@ -164,45 +172,62 @@ void GameProtocol::serialize_W3GS_CHAT_FROM_HOST(QVariantHash data, QByteArrayBu
         out->insertByte(player.toUInt());
     }
     out->insertByte(data.value("from", 0).toUInt());
-
-    out->insertByte(data.value("flag", 0x10).toUInt());
-    out->insertDWord(data.value("extra_flags", 0).toUInt());
+    quint8 flag = data.value("flag", 0x10).toUInt();
+    out->insertByte(flag);
+    if (flag == 0x20) {
+        out->insertDWord(data.value("extra_flags", 0).toUInt());
+    }
     out->insertString(data.value("text", "").toString());
 }
 void GameProtocol::serialize_W3GS_LEAVERS(QVariantHash data, QByteArrayBuilder* out){
+    Q_UNUSED(data)
+    Q_UNUSED(out)
 }
 void GameProtocol::serialize_W3GS_GAMEINFO(QVariantHash data, QByteArrayBuilder* out){
+    Q_UNUSED(data)
+    Q_UNUSED(out)
 }
 void GameProtocol::serialize_W3GS_CREATEGAME(QVariantHash data, QByteArrayBuilder* out){
+    Q_UNUSED(data)
+    Q_UNUSED(out)
 }
 void GameProtocol::serialize_W3GS_REFRESHGAME(QVariantHash data, QByteArrayBuilder* out){
+    Q_UNUSED(data)
+    Q_UNUSED(out)
 }
 void GameProtocol::serialize_W3GS_DECREATEGAME(QVariantHash data, QByteArrayBuilder* out){
+    Q_UNUSED(data)
+    Q_UNUSED(out)
 }
 
 void GameProtocol::deserialize_W3GS_REQJOIN(QByteArrayBuilder data, QVariantHash *out)
 {
-
+    Q_UNUSED(data)
+    Q_UNUSED(out)
 }
 
 void GameProtocol::deserialize_W3GS_LEAVEREQ(QByteArrayBuilder data, QVariantHash *out)
 {
-
+    Q_UNUSED(data)
+    Q_UNUSED(out)
 }
 
 void GameProtocol::deserialize_W3GS_GAMELOADED_SELF(QByteArrayBuilder data, QVariantHash *out)
 {
-
+    Q_UNUSED(data)
+    Q_UNUSED(out)
 }
 
 void GameProtocol::deserialize_W3GS_OUTGOING_ACTION(QByteArrayBuilder data, QVariantHash *out)
 {
-
+    Q_UNUSED(data)
+    Q_UNUSED(out)
 }
 
 void GameProtocol::deserialize_W3GS_OUTGOING_KEEPALIVE(QByteArrayBuilder data, QVariantHash *out)
 {
-
+    Q_UNUSED(data)
+    Q_UNUSED(out)
 }
 
 void GameProtocol::deserialize_W3GS_CHAT_TO_HOST(QByteArrayBuilder data, QVariantHash *out)
@@ -267,27 +292,32 @@ void GameProtocol::deserialize_W3GS_CHAT_TO_HOST(QByteArrayBuilder data, QVarian
 
 void GameProtocol::deserialize_W3GS_SEARCHGAME(QByteArrayBuilder data, QVariantHash *out)
 {
-
+    Q_UNUSED(data)
+    Q_UNUSED(out)
 }
 
 void GameProtocol::deserialize_W3GS_PING_FROM_OTHERS(QByteArrayBuilder data, QVariantHash *out)
 {
-
+    Q_UNUSED(data)
+    Q_UNUSED(out)
 }
 
 void GameProtocol::deserialize_W3GS_PONG_TO_OTHERS(QByteArrayBuilder data, QVariantHash *out)
 {
-
+    Q_UNUSED(data)
+    Q_UNUSED(out)
 }
 
 void GameProtocol::deserialize_W3GS_CLIENTINFO(QByteArrayBuilder data, QVariantHash *out)
 {
-
+    Q_UNUSED(data)
+    Q_UNUSED(out)
 }
 
 void GameProtocol::deserialize_W3GS_STARTDOWNLOAD(QByteArrayBuilder data, QVariantHash *out)
 {
-
+    Q_UNUSED(data)
+    Q_UNUSED(out)
 }
 
 void GameProtocol::serialize_W3GS_MAPCHECK(QVariantHash data, QByteArrayBuilder* out){
@@ -314,17 +344,24 @@ void GameProtocol::serialize_W3GS_MAPCHECK(QVariantHash data, QByteArrayBuilder*
 }
 
 void GameProtocol::serialize_W3GS_STARTDOWNLOAD(QVariantHash data, QByteArrayBuilder* out){
+    Q_UNUSED(data)
+    Q_UNUSED(out)
 }
 
 void GameProtocol::serialize_W3GS_MAPPART(QVariantHash data, QByteArrayBuilder* out){
+    Q_UNUSED(data)
+    Q_UNUSED(out)
 }
 
 void GameProtocol::serialize_W3GS_INCOMING_ACTION2(QVariantHash data, QByteArrayBuilder* out){
+    Q_UNUSED(data)
+    Q_UNUSED(out)
 }
 
 void GameProtocol::serialize_W3GS_SEARCHGAME(QVariantHash data, QByteArrayBuilder *out)
 {
-
+    Q_UNUSED(data)
+    Q_UNUSED(out)
 }
 
 void GameProtocol::deserialize_W3GS_MAPSIZE(QByteArrayBuilder data, QVariantHash* out){
@@ -340,12 +377,14 @@ void GameProtocol::deserialize_W3GS_MAPSIZE(QByteArrayBuilder data, QVariantHash
 
 void GameProtocol::deserialize_W3GS_MAPPARTOK(QByteArrayBuilder data, QVariantHash *out)
 {
-
+    Q_UNUSED(data)
+    Q_UNUSED(out)
 }
 
 void GameProtocol::deserialize_W3GS_MAPPARTNOTOK(QByteArrayBuilder data, QVariantHash *out)
 {
-
+    Q_UNUSED(data)
+    Q_UNUSED(out)
 }
 
 void GameProtocol::deserialize_W3GS_PONG_TO_HOST(QByteArrayBuilder data, QVariantHash *out)

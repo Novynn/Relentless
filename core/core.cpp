@@ -17,6 +17,7 @@ Core::Core(QObject *parent) :
     clientCore = new ClientCore(this);
     gameCore = new GameCore(this);
     PluginCore* pluginCore = new PluginCore(this);
+    Q_UNUSED(pluginCore)
     //pluginCore->loadPlugins(QDir::currentPath().append("/plugins/"));
 
     clientCore->load();
