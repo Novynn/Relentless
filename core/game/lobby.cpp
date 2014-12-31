@@ -107,14 +107,14 @@ void Lobby::tick() {
         client->hostRefresh();
     }
 
-    //pingAll();
+    pingAll();
 
     lastTick = QDateTime::currentDateTime();
 }
 
 void Lobby::ping(Player *p){
     p->addChat("Sent Ping");
-    p->sendPacket(GameProtocol::serialize(W3GSPacket::W3GS_PING_FROM_HOST));
+    p->sendPacket(GameProtocol::serialize(W3GSPacket::W3GS_PING_FROM_HOST, "tickcount", mElapsedTimer->elapsed()));
 }
 
 void Lobby::pingAll(){

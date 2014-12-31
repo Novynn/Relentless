@@ -42,6 +42,7 @@ QVariantHash* GameProtocol::deserialize(W3GSPacket::PacketId packetId, QByteArra
 
 void GameProtocol::serialize_W3GS_PING_FROM_HOST(QVariantHash data, QByteArrayBuilder* out){
     // Empty
+    out->insertDWord(data.value("tickcount", 0).toUInt());
 }
 
 void GameProtocol::serialize_W3GS_SLOTINFOJOIN(QVariantHash data, QByteArrayBuilder* out){
@@ -288,7 +289,6 @@ void GameProtocol::serialize_W3GS_MAPCHECK(QVariantHash data, QByteArrayBuilder*
      * (DWORD) File CRC encryption
      * (DWORD) File SHA-1 hash
     */
-    qDebug() << data;
     QString filePath = data.value("filepath").toString();
     quint32 fileSize = data.value("filesize").toUInt();
     quint32 mapInfo = data.value("mapinfo").toUInt();
