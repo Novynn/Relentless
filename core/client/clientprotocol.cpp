@@ -70,7 +70,10 @@ QVariantHash ClientProtocol::Deserialize_SID_GETADVLISTEX(QByteArrayBuilder b)
             game["password"] = b.getString();
             game["slots"] = b.getByte();
             game["counter"] = b.getString(8);
-            game["statstring"] = QByteArray(b.getString().toLocal8Bit());
+
+            QByteArray statstring = b.getString().toLocal8Bit();
+            game["statstring"] = Functions::decodeStatString(statstring);
+            game["encoded_statstring"] = statstring;
             games.append(game);
         }
         out["games"] = games;

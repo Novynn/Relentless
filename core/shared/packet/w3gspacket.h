@@ -55,8 +55,6 @@ public:
 
     W3GSPacket(uint pId, QByteArray data = QByteArray(), Locality from = Packet::FROM_LOCAL)
         : W3GSPacket((PacketId) pId, data, from){
-        if (locality() == Packet::FROM_SERVER)
-            stripHeader();
     }
 
     uint packetId() const {

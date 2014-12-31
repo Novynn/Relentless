@@ -136,7 +136,7 @@ public:
     QByteArray generateStatstring(QString hostCounter, QString username) const {
         QByteArrayBuilder statString;
         statString.insertByte(98); // 11
-        statString.insertString(hostCounter, 4);
+        statString.insertString(hostCounter, 8);
 
         QByteArrayBuilder decoded;
         decoded.insertVoid(gameFlags());
