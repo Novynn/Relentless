@@ -105,7 +105,7 @@ void Lobby::leavingPlayer(Player *player, uint reason){
 }
 
 void Lobby::tick() {
-    if (lastTick.msecsTo(QDateTime::currentDateTime()) < 5000) return;
+    if (lastTick.msecsTo(QDateTime::currentDateTime()) < 30000) return;
 
     foreach(Client* client, game()->clients()){
         client->hostRefresh();
@@ -218,7 +218,7 @@ W3GSPacket* Lobby::Serialize_W3GS_SLOTINFO(){
 
     int count = mGame->slotMap()->getSlots().count();
 
-    slotData.insertByte(count);
+//    slotData.insertByte(count);
     qDebug() << "count: " << count;
     foreach(Slot* slot, mGame->slotMap()->getSlots()){
         slotData.insertVoid(slot->toByteArray());
@@ -230,7 +230,7 @@ W3GSPacket* Lobby::Serialize_W3GS_SLOTINFO(){
 //    qDebug() << "data: " << mGame->randomSeed() << mGame->map()->layoutStyle() << mGame->map()->numPlayers();
 
     QByteArrayBuilder out;
-    out.insertWord(slotData.size());
+    out.insertWord(0x0B);
     out.insertVoid(slotData);
 
     return new W3GSPacket(W3GSPacket::W3GS_SLOTINFO, slotData);
