@@ -419,7 +419,7 @@ bool Map::load(const QString mapPath){
                 mSHA1->addData(fileContents.data(), fileContents.length());
                 other_sha1->Update((unsigned char*) fileContents.data(), fileContents.length());
 
-                qDebug() << "CRC: " << QByteArrayBuilder::fromDWord(val).toDecimalString();
+                qDebug() << "CRC: " << val;
             }
         }
 
@@ -475,10 +475,10 @@ bool Map::load(const QString mapPath){
 
         content.getDWord(); // Number of Saves
         content.getDWord(); // Editor Version
-        content.getString(); // Map Name
-        content.getString(); // Map Author
-        content.getString(); // Map Description
-        content.getString(); // Recommended Players
+        qDebug() << "Map Name: " << content.getString(); // Map Name
+        qDebug() << "Author: " << content.getString(); // Map Author
+        qDebug() << "Description: " << content.getString(); // Map Description
+        qDebug() << "Players: " << content.getString(); // Recommended Players
         content.getVoid(32);
         content.getVoid(16);
         rawMapWidth = content.getDWord(); // Map Width
@@ -520,12 +520,10 @@ bool Map::load(const QString mapPath){
             content.getByte();				// fog blue value
             content.getByte();				// fog alpha value
             content.getDWord();				// global weather id
-            //
-            content.getWord(); // Wut
-            content.getByte(); // Are
-            content.getDWord(); // These
-            content.getWord();
-            //
+//            content.getWord(); // Wut
+//            content.getByte(); // Are
+//            content.getDWord(); // These
+//            content.getWord();
             content.getString();            // sound env
             content.getByte();				// tileset id of the used custom light environment
             content.getByte();				// custom water tinting red value
@@ -534,17 +532,14 @@ bool Map::load(const QString mapPath){
             content.getByte();				// custom water tinting alpha value
         }
         else {
-            //
-            content.getWord(); // Wut
-            content.getByte(); // Are These
-            //
-
+//            content.getWord(); // Wut
+//            content.getByte(); // Are These
         }
         rawMapNumPlayers = content.peekDWord(); // NUMBER OF PLAYERS
         int closedSlots = 0;
 
         if (rawMapNumPlayers > 16){
-            qDebug() << "Error - Invalid amount of players detected.";
+            qDebug() << "Error - Invalid amount of players detected: " << rawMapNumPlayers;
             mValid = false;
             return false;
         }

@@ -657,17 +657,17 @@ void Client::Recv_SID_ENTERCHAT(QByteArrayBuilder b){
     send(p);
 
     RequestGameList();
-//    GameCore* gCore = clientCore->core()->getGameCore();
-//    //if (gCore->games().count() == 0){
+    GameCore* gCore = clientCore->core()->getGameCore();
+    if (gCore->games().count() == 0){
 
-//        Game* game = new Game(gCore);
-//        game->loadMap("uxIslandDefense3.w3x");
-//        game->setName("necotest");
-//        QString &hostname = game->hostname();
-//        hostname = username();
+        Game* game = new Game(gCore);
+        game->loadMap("uxIslandDefense3.w3x");
+        game->setName("necotest");
+        QString &hostname = game->hostname();
+        hostname = username();
 
-//        gCore->newGame(game);
-    //}
+        gCore->newGame(game);
+    }
 }
 
 void Client::Recv_SID_CHATEVENT(QByteArrayBuilder b){

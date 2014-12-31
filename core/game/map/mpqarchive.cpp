@@ -341,6 +341,7 @@ bool MPQArchive::load(){
 	for(; pBlock < pBlockEnd; pBlock++)
 	if(pBlock->m_Flags & 0x80000000 /*MPQ_FILE_EXISTS*/ && pBlock->m_FilePos > size())
 	{
+        qDebug() << "BLOCK CORRUPT:\n" << pBlock->readAll();
         m_Error = MPQ_BLOCK_TABLE_CORRUPT;
 		return false;
 	}
