@@ -33,14 +33,14 @@ void Lobby::welcomePlayer(Player *player){
         if (p == player) continue;
         {
             // Send PLAYERINFO to new player
-            QJsonObject data;
+            QVariantHash data;
             data.insert("player.id", p->playerId());
             data.insert("player.name", p->name());
             player->sendPacket(GameProtocol::serialize(W3GSPacket::W3GS_PLAYERINFO, data));
         }
         {
             // Send PLAYERINFO to all other players about the new player
-            QJsonObject data;
+            QVariantHash data;
             data.insert("player.id", player->playerId());
             data.insert("player.name", player->name());
             p->sendPacket(GameProtocol::serialize(W3GSPacket::W3GS_PLAYERINFO, data));
@@ -48,16 +48,12 @@ void Lobby::welcomePlayer(Player *player){
     }
 
     {
-        QJsonObject data;
+        QVariantHash data;
         data.insert("filepath", map()->path());
-        data.insert("filesize", (qint64) map()->size());
-        data.insert("mapinfo", (qint64) map()->info());
-        data.insert("mapcrc", (qint64) map()->CRC());
-        QJsonArray byteArray;
-        for (int i = 0; i < map()->SHA1().size(); i++) {
-            byteArray.append((qint64) map()->SHA1().at(i));
-        }
-        data.insert("mapsha1", byteArray);
+        data.insert("filesize", map()->size());
+        data.insert("mapinfo", map()->info());
+        data.insert("mapcrc", map()->CRC());
+        data.insert("mapsha1", map()->SHA1());
 
         W3GSPacket* out = GameProtocol::serialize(W3GSPacket::W3GS_MAPCHECK, data);
         player->addChat("Checking player's map file...");
@@ -131,8 +127,8 @@ void Lobby::pingAll(){
 
 void Lobby::handlePacket(Player* player, W3GSPacket* p){
     if (p->packetId() == W3GSPacket::W3GS_LEAVEREQ){
-        QJsonObject* data = GameProtocol::deserialize((W3GSPacket::PacketId) p->packetId(), p->data());
-        int reason = data->value("reason").toInt();
+        QVariantHash* data = GameProtocol::deserialize((W3GSPacket::PacketId) p->packetId(), p->data());
+        int reason = data->value("reason").toUInt();
         leavingPlayer(player, reason);
     }
 }
