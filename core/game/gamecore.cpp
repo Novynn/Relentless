@@ -162,15 +162,13 @@ void GameCore::incomingConnection(qintptr socketDescriptor){
 }
 
 void GameCore::potientialConnection(int socketDescriptor){
-    info("New potiential connection.");
-
     Player* player = new Player(this);
     if (player->initialize(socketDescriptor)){
-        info("Player socket assigned. Awaiting join request...");
+        info("New player socket assigned. Awaiting join request...");
         connect(player, SIGNAL(joinRequest(Player*,quint64)), this, SLOT(attachPlayerToGame(Player*, quint64)));
         return;
     }
-    error("Unable to create player object.");
+    error("Unable to create player object for joining player.");
     delete player;
 }
 

@@ -52,6 +52,7 @@ public:
     void Recv_W3GS_LEAVEREQ(QByteArrayBuilder b);
     void Send_W3GS_LEAVERS();
     void Recv_W3GS_REQJOIN(QByteArrayBuilder b);
+    void close();
 private:
     QQueue<Packet*> packetQueue;
     QString mPlayerName;

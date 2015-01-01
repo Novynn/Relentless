@@ -11,7 +11,7 @@ Lobby::Lobby(Game *parent) :
 }
 
 void Lobby::welcomePlayer(Player *player){
-    player->addChat("Welcoming player...");
+    player->addChat("Join request accepted.");
 
     // Find slot
     foreach(Slot* slot, slotMap()->getSlots()){
@@ -96,12 +96,11 @@ void Lobby::leavingPlayer(Player *player, uint reason){
         }
     }
     player->setLeaving();
-    game()->removePlayer(player);
-    player->deleteLater();
+    player->close();
 }
 
 void Lobby::tick() {
-    if (lastTick.msecsTo(QDateTime::currentDateTime()) < 30000) return;
+    if (lastTick.msecsTo(QDateTime::currentDateTime()) < 5000) return;
 
     foreach(Client* client, game()->clients()){
         client->hostRefresh();

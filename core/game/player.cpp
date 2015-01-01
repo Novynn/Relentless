@@ -12,11 +12,13 @@ Player::Player(GameCore *parent) :
     mPId = 1;
 }
 
+void Player::close() {
+    socket->close();
+}
+
 void Player::disconnected(){
     addChat("Player disconnected.", Core::MESSAGE_TYPE_DEFAULT);
-    if (mState == ATTACHED){
-        mGame->removePlayer(this);
-    }
+    mGame->removePlayer(this);
     deleteLater();
 }
 
@@ -115,7 +117,7 @@ void Player::Recv_W3GS_REQJOIN(QByteArrayBuilder b){
                 .arg(socket->peerName())
                 .arg(socket->peerAddress().toString())
                 .arg(socket->peerPort()),
-            Core::MESSAGE_TYPE_DEFAULT);
+            Core::MESSAGE_TYPE_INFO);
 
     emit joinRequest(this, actualHostCounter);
 }
