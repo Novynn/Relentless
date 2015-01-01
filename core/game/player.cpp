@@ -10,10 +10,21 @@ Player::Player(GameCore *parent) :
 
     mPlayerName = "Unknown";
     mPId = 1;
+    isVirtual = false;
+}
+
+Player::Player(Game* game)
+    : QObject(game->getGameCore()), gameCore(game->getGameCore()){
+    socket = 0;
+
+    mPlayerName = "Host";
+    mPId = 12;
+    isVirtual = true;
 }
 
 void Player::close() {
-    socket->close();
+    if (socket && socket->isOpen())
+        socket->close();
 }
 
 void Player::disconnected(){
@@ -31,7 +42,7 @@ void Player::addChat(QString s, Core::MessageType type){
 }
 
 bool Player::initialize(int socketDescriptor){
-    if (!socket->setSocketDescriptor(socketDescriptor)) return false;
+    if (!socket || !socket->setSocketDescriptor(socketDescriptor)) return false;
     return true;
 }
 
@@ -47,6 +58,7 @@ bool Player::assignLength( QByteArray &content, int offset ) const{
 }
 
 void Player::extractPackets(){
+    if (!socket) return;
     if (socket->bytesAvailable() < 4)
         return;
     while (socket->bytesAvailable() >= 4){
@@ -123,6 +135,8 @@ void Player::Recv_W3GS_REQJOIN(QByteArrayBuilder b){
 }
 
 void Player::sendPacket(W3GSPacket* packet){
-    socket->write(packet->toPackedData());
-    socket->flush();
+    if (socket && !isVirtual) {
+        socket->write(packet->toPackedData());
+        socket->flush();
+    }
 }

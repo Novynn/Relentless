@@ -23,7 +23,8 @@ public:
         UNKNOWN
     };
 
-    explicit Player(GameCore *parent = 0);
+    Player(GameCore *parent = 0);
+    Player(Game *game);
     
     QTcpSocket* socket;
     bool initialize(int socketDescriptor);
@@ -64,7 +65,7 @@ private:
     bool assignLength(QByteArray &content, int offset = 2) const;
 
 
-
+    bool isVirtual;
 
     unsigned char mPId;
 

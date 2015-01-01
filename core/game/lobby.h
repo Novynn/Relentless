@@ -45,9 +45,11 @@ public:
     void handlePong(Player *player, W3GSPacket *p);
     void handleChat(Player *player, W3GSPacket *p);
     void handleMapDownload(Player *player, W3GSPacket *p);
+    QList<Player *> players(bool includeVirtual=false);
 private:
     QElapsedTimer* mElapsedTimer;
     QDateTime lastTick;
+    Player* virtualHost;
 
     Game* mGame;
 };

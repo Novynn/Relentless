@@ -8,6 +8,16 @@ Lobby::Lobby(Game *parent) :
     mElapsedTimer->start();
 
     lastTick = QDateTime::fromMSecsSinceEpoch(0);
+
+    virtualHost = new Player(game());
+}
+
+QList<Player*> Lobby::players(bool includeVirtual) {
+    QList<Player*> players = game()->players();
+    if (includeVirtual){
+        players.append(virtualHost);
+    }
+    return players;
 }
 
 void Lobby::welcomePlayer(Player *player){
@@ -29,7 +39,7 @@ void Lobby::welcomePlayer(Player *player){
         player->sendPacket(Serialize_W3GS_SLOTINFOJOIN(player));
     }
 
-    foreach(Player* p, game()->players()){
+    foreach(Player* p, players(true)){
         if (p == player) continue;
         {
             // Send PLAYERINFO to new player
@@ -60,7 +70,7 @@ void Lobby::welcomePlayer(Player *player){
         player->sendPacket(out);
     }
 
-    foreach(Player* p, mGame->players()){
+    foreach(Player* p, players()){
 //        QVariantHash data;
 //        data.insert("slots.data", slotMap()->encode());
 //        data.insert("randomseed", mGame->randomSeed());
@@ -69,6 +79,8 @@ void Lobby::welcomePlayer(Player *player){
 //        p->sendPacket(GameProtocol::serialize(W3GSPacket::W3GS_SLOTINFO, data));
         p->sendPacket(Serialize_W3GS_SLOTINFO());
     }
+
+    sendMessageToPlayer(virtualHost, player, "Welcome to Relentless", 0x10);
 }
 
 void Lobby::leavingPlayer(Player *player, uint reason){
@@ -85,7 +97,7 @@ void Lobby::leavingPlayer(Player *player, uint reason){
     }
 
     // Notify everyone that the player has left and why. Then update their slot information.
-    foreach(Player* p, mGame->players()){
+    foreach(Player* p, players()){
         // Skip the leaving player
         if (p != player){
             QVariantHash data;
@@ -117,7 +129,7 @@ void Lobby::ping(Player *p){
 }
 
 void Lobby::pingAll(){
-    foreach(Player* p, mGame->players()){
+    foreach(Player* p, players()){
         ping(p);
     }
 }
@@ -276,7 +288,7 @@ void Lobby::handleSlotChangeRequest(Player* player, QVariantHash data) {
     }
 
     // Update!
-    foreach(Player* p, game()->players()){
+    foreach(Player* p, players()){
         p->sendPacket(Serialize_W3GS_SLOTINFO());
     }
 }

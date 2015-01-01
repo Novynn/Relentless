@@ -85,6 +85,10 @@ public:
         return mSlotMap;
     }
 
+    GameCore* getGameCore() {
+        return gameCore;
+    }
+
 private:
     GameCore* gameCore;
     QHash<quint64, Client*> mClients;
