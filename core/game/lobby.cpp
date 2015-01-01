@@ -155,7 +155,7 @@ void Lobby::handlePacket(Player* player, W3GSPacket* p){
         quint32 roundTrip = elapsed();
         playerTickCounts.remove(player);
         sendMessageToPlayer(player, player,
-                            QString("Ping: %1ms (%2ms round trip)").arg(tick - lastTick, roundTrip - lastTick),
+                            QString("Ping: %1ms (%2ms round trip)").arg(tick - lastTick).arg(roundTrip - lastTick),
                             0x10);
     }
 }
