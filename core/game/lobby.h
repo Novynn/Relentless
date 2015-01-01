@@ -41,15 +41,14 @@ public:
     void slotChangeRequest(Player *player, QVariantHash data);
     void sendMessageToPlayer(Player *from, Player *to, QString text, quint8 flag, quint32 extraFlags = 0);
     void sendMessageToPlayers(Player *from, QList<Player *> to, QString text, quint8 flag, quint32 extraFlags = 0);
+    void handleLeaveRequest(Player *player, W3GSPacket *p);
+    void handlePong(Player *player, W3GSPacket *p);
+    void handleChat(Player *player, W3GSPacket *p);
 private:
     QElapsedTimer* mElapsedTimer;
     QDateTime lastTick;
 
     Game* mGame;
-signals:
-    
-public slots:
-    
 };
 
 #endif // LOBBY_H

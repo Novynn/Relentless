@@ -149,6 +149,17 @@ void Lobby::handleChat(Player* player, W3GSPacket* p) {
     }
 }
 
+void Lobby::handlePong(Player* player, W3GSPacket* p) {
+    QVariantHash* data = GameProtocol::deserialize((W3GSPacket::PacketId) p->packetId(), p->data());
+    quint32 tick = data->value("tickcount", 0).toUInt();
+    quint32 lastTick = playerTickCounts.value(player, 0);
+    quint32 roundTrip = elapsed();
+    Q_UNUSED(tick)
+    Q_UNUSED(lastTick)
+    Q_UNUSED(roundTrip)
+    playerTickCounts.remove(player);
+}
+
 void Lobby::handlePacket(Player* player, W3GSPacket* p){
     switch (p->packetId()) {
     case W3GSPacket::W3GS_LEAVEREQ:
@@ -158,14 +169,7 @@ void Lobby::handlePacket(Player* player, W3GSPacket* p){
         handleChat(player, p);
         break;
     case W3GSPacket::W3GS_PONG_TO_HOST:
-        QVariantHash* data = GameProtocol::deserialize((W3GSPacket::PacketId) p->packetId(), p->data());
-        quint32 tick = data->value("tickcount", 0).toUInt();
-        quint32 lastTick = playerTickCounts.value(player, 0);
-        quint32 roundTrip = elapsed();
-        Q_UNUSED(tick)
-        Q_UNUSED(lastTick)
-        Q_UNUSED(roundTrip)
-        playerTickCounts.remove(player);
+        handlePong(player, p);
         break;
     default:
         // Unhandled
