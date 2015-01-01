@@ -141,10 +141,10 @@ void Lobby::handleChat(Player* player, W3GSPacket* p) {
             if (to != 0) {
                 sendMessageToPlayer(player, to, text, flag, extraFlags);
             }
-            player->addChat(text, Core::MESSAGE_TYPE_INFO);
+            player->addChat("Chat: " + text, Core::MESSAGE_TYPE_INFO);
         }
         else {
-            slotChangeRequest(player, message);
+            handleSlotChangeRequest(player, message);
         }
     }
 }
@@ -160,6 +160,28 @@ void Lobby::handlePong(Player* player, W3GSPacket* p) {
     playerTickCounts.remove(player);
 }
 
+void Lobby::handleMapDownload(Player* player, W3GSPacket* p) {
+    QVariantHash* data;
+    if (p->packetId() == W3GSPacket::W3GS_MAPSIZE) {
+        data = GameProtocol::deserialize((W3GSPacket::PacketId) p->packetId(), p->data());
+        quint8 flag = data->value("flag", 1).toUInt();
+        if (flag == 0x01) {
+            // Has map
+            player->addChat("Has map.");
+        }
+        else if (flag == 0x03) {
+            // Continue download
+            player->addChat("Requires map.");
+        }
+    }
+    else if (p->packetId() == W3GSPacket::W3GS_MAPPARTOK) {
+
+    }
+    else if (p->packetId() == W3GSPacket::W3GS_MAPPARTNOTOK) {
+
+    }
+}
+
 void Lobby::handlePacket(Player* player, W3GSPacket* p){
     switch (p->packetId()) {
     case W3GSPacket::W3GS_LEAVEREQ:
@@ -170,6 +192,11 @@ void Lobby::handlePacket(Player* player, W3GSPacket* p){
         break;
     case W3GSPacket::W3GS_PONG_TO_HOST:
         handlePong(player, p);
+        break;
+    case W3GSPacket::W3GS_MAPSIZE:
+    case W3GSPacket::W3GS_MAPPARTOK:
+    case W3GSPacket::W3GS_MAPPARTNOTOK:
+        handleMapDownload(player, p);
         break;
     default:
         // Unhandled
@@ -199,17 +226,21 @@ void Lobby::sendMessageToPlayer(Player* from, Player* to, QString text, quint8 f
     sendMessageToPlayers(from, QList<Player*>{to}, text, flag, extraFlags);
 }
 
-void Lobby::slotChangeRequest(Player* player, QVariantHash data) {
-    Slot* currSlot = slotMap()->getSlotFromPlayerId(player->playerId());
+void Lobby::handleSlotChangeRequest(Player* player, QVariantHash data) {
     quint8 flag = data.value("flag", 0x00).toUInt();
     quint8 val;
 
+    QList<Slot*> slotList = slotMap()->getSlots();
+    Slot* currSlot = slotMap()->getSlotFromPlayerId(player->playerId());
     if (currSlot == 0) return;
+    int currSlotIndex = slotList.indexOf(currSlot);
 
     switch(flag) {
     case 0x11:
         val = data.value("team", 0).toUInt();
-        foreach(Slot* slot, slotMap()->getSlots()){
+        for(int i = currSlotIndex; i < slotList.size() + currSlotIndex; i++){
+            int index = (i % slotList.size());
+            Slot* slot = slotList.at(index);
             if (slot->team() == val && slot->status() == Slot::SLOT_STATUS_OPEN){
                 currSlot->setStatus(Slot::SLOT_STATUS_OPEN);
                 currSlot->setPlayerId(0);

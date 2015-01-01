@@ -370,9 +370,9 @@ void GameProtocol::deserialize_W3GS_MAPSIZE(QByteArrayBuilder data, QVariantHash
      * (BYTE) Size Flag
      * (DWORD) Map size
      */
-    out->insert("unknown", (qint64) data.getDWord());
-    out->insert("sizeflag", data.getByte());
-    out->insert("mapsize", (qint64) data.getDWord());
+    data.getDWord();
+    out->insert("flag", data.getByte());
+    out->insert("mapsize", data.getDWord());
 }
 
 void GameProtocol::deserialize_W3GS_MAPPARTOK(QByteArrayBuilder data, QVariantHash *out)
