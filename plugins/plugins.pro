@@ -1,4 +1,4 @@
 TEMPLATE      = subdirs
 CONFIG        += debug_and_release
-SUBDIRS       = \
-    MainWindow
+#SUBDIRS       = \
+#    MainWindow
