@@ -113,7 +113,6 @@ void Lobby::tick() {
 }
 
 void Lobby::ping(Player *p){
-    p->addChat("Sent Ping");
     p->sendPacket(GameProtocol::serialize(W3GSPacket::W3GS_PING_FROM_HOST, "tickcount", elapsed()));
     playerTickCounts.insert(p, elapsed());
 }
@@ -124,36 +123,54 @@ void Lobby::pingAll(){
     }
 }
 
-void Lobby::handlePacket(Player* player, W3GSPacket* p){
-    if (p->packetId() == W3GSPacket::W3GS_LEAVEREQ){
-        QVariantHash* data = GameProtocol::deserialize((W3GSPacket::PacketId) p->packetId(), p->data());
-        int reason = data->value("reason").toUInt();
-        leavingPlayer(player, reason);
-    }
-    if (p->packetId() == W3GSPacket::W3GS_CHAT_TO_HOST){
-        QVariantHash* data = GameProtocol::deserialize((W3GSPacket::PacketId) p->packetId(), p->data());
-        for (QVariant m : data->value("messages").toList()) {
-            QVariantHash message = m.toHash();
-            if (message.contains("text")) {
-                QString text = message.value("text", "").toString();
-                Player* to = game()->playerById(message.value("to", -1).toInt());
-                quint8 flag = message.value("flag", 0).toUInt();
-                quint32 extraFlags = message.value("extra_flags", 0).toUInt();
-                if (to != 0) {
-                    sendMessageToPlayer(player, to, text, flag, extraFlags);
-                }
+void Lobby::handleLeaveRequest(Player* player, W3GSPacket* p) {
+    QVariantHash* data = GameProtocol::deserialize((W3GSPacket::PacketId) p->packetId(), p->data());
+    int reason = data->value("reason").toUInt();
+    leavingPlayer(player, reason);
+}
+
+void Lobby::handleChat(Player* player, W3GSPacket* p) {
+    QVariantHash* data = GameProtocol::deserialize((W3GSPacket::PacketId) p->packetId(), p->data());
+    for (QVariant m : data->value("messages").toList()) {
+        QVariantHash message = m.toHash();
+        if (message.contains("text")) {
+            QString text = message.value("text", "").toString();
+            Player* to = game()->playerById(message.value("to", -1).toInt());
+            quint8 flag = message.value("flag", 0).toUInt();
+            quint32 extraFlags = message.value("extra_flags", 0).toUInt();
+            if (to != 0) {
+                sendMessageToPlayer(player, to, text, flag, extraFlags);
             }
-            else {
-                slotChangeRequest(player, message);
-            }
+            player->addChat(text, Core::MESSAGE_TYPE_INFO);
+        }
+        else {
+            slotChangeRequest(player, message);
         }
     }
-    if (p->packetId() == W3GSPacket::W3GS_PONG_TO_HOST) {
+}
+
+void Lobby::handlePacket(Player* player, W3GSPacket* p){
+    switch (p->packetId()) {
+    case W3GSPacket::W3GS_LEAVEREQ:
+        handleLeaveRequest(player, p);
+        break;
+    case W3GSPacket::W3GS_CHAT_TO_HOST:
+        handleChat(player, p);
+        break;
+    case W3GSPacket::W3GS_PONG_TO_HOST:
         QVariantHash* data = GameProtocol::deserialize((W3GSPacket::PacketId) p->packetId(), p->data());
         quint32 tick = data->value("tickcount", 0).toUInt();
         quint32 lastTick = playerTickCounts.value(player, 0);
         quint32 roundTrip = elapsed();
+        Q_UNUSED(tick)
+        Q_UNUSED(lastTick)
+        Q_UNUSED(roundTrip)
         playerTickCounts.remove(player);
+        break;
+    default:
+        // Unhandled
+        player->addChat("Unknown Packet!");
+        qDebug() << p;
     }
 }
 
