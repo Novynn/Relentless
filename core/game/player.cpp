@@ -121,7 +121,6 @@ void Player::Recv_W3GS_REQJOIN(QByteArrayBuilder b){
 }
 
 void Player::sendPacket(W3GSPacket* packet){
-    qDebug() << "Sending packet to player: \n" << packet;
     socket->write(packet->toPackedData());
     socket->flush();
 }
