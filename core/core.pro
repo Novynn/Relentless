@@ -22,6 +22,8 @@ DESTDIR = ../bin
 
 TEMPLATE = app
 
+INCLUDEPATH += shared
+
 SOURCES += main.cpp \
     core.cpp \
     client/clientcore.cpp \
@@ -36,7 +38,6 @@ SOURCES += main.cpp \
     game/instance.cpp \
     game/lobby.cpp \
     game/player.cpp \
-    coreobject.cpp \
     client/clientprotocol.cpp \
     client/client.cpp \
     shared/packet/packet.cpp \
@@ -70,10 +71,12 @@ HEADERS += \
     shared/packet/bnlspacket.h \
     logger.h \
     plugins/plugincore.h \
-    plugins/plugin.h \
     shared/MessageOrigin.h \
     shared/packet/w3gspacket.h \
-    game/gameprotocol.h
+    game/gameprotocol.h \
+    shared/plugin/plugin.h \
+    shared/MessageType.h \
+    client/friend.h
 
 
 

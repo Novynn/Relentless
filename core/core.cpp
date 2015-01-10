@@ -3,6 +3,7 @@
 #include "game/gamecore.h"
 #include "game/game.h"
 #include "plugins/plugincore.h"
+#include "shared/MessageType.h"
 
 #ifdef Q_OS_WIN
 #include "windows.h"
@@ -14,14 +15,6 @@ Core::Core(QObject *parent) :
     uptimeTimer->start();
 
     loadSettings();
-    clientCore = new ClientCore(this);
-    gameCore = new GameCore(this);
-    PluginCore* pluginCore = new PluginCore(this);
-    Q_UNUSED(pluginCore)
-    //pluginCore->loadPlugins(QDir::currentPath().append("/plugins/"));
-
-    clientCore->load();
-    gameCore->load();
 
     output("Welcome to...\n"
          "                   _____      _            _   _                               \n"
@@ -30,11 +23,20 @@ Core::Core(QObject *parent) :
          "                  |  _  // _ \\ |/ _ \\ '_ \\| __| |/ _ \\/ __/ __|                \n"
          "                  | | \\ \\  __/ |  __/ | | | |_| |  __/\\__ \\__ \\                \n"
          "                  |_|  \\_\\___|_|\\___|_| |_|\\__|_|\\___||___/___/                \n"
-         "                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                \n", MessageOrigin("Core"), MESSAGE_TYPE_INFO);
+         "                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                \n", MessageOrigin("Core"), MessageType::Info);
 
-    clientCore->loadClients();
 
-    clientCore->sendConnectSignal();
+    clientCore = new ClientCore(this);
+    gameCore = new GameCore(this);
+    PluginCore* pluginCore = new PluginCore(this);
+    pluginCore->loadPlugins(QDir::currentPath().append("/plugins/"));
+
+    //clientCore->load();
+    //gameCore->load();
+
+    //clientCore->loadClients();
+
+    //clientCore->sendConnectSignal();
 }
 
 Core::~Core(){
@@ -71,7 +73,7 @@ bool Core::loadSettings(){
 }
 
 void Core::printMessage(QString m, MessageOrigin origin, MessageType messageType){
-    if (messageType == MESSAGE_TYPE_INFO && overrideHideInfo) return;
+    if (messageType == MessageType::Info && overrideHideInfo) return;
     output(m, origin, messageType);
 }
 
@@ -90,10 +92,10 @@ void Core::output(QString message, MessageOrigin origin, MessageType messageType
     int color = defaultColor;
     SetConsoleTextAttribute(console, defaultColor);
 #endif
-    if (messageType == MESSAGE_TYPE_DEFAULT){
+    if (messageType == MessageType::Default){
         cout << "[-]";
     }
-    else if (messageType == MESSAGE_TYPE_INFO){
+    else if (messageType == MessageType::Info){
 #ifdef Q_OS_WIN
         color = FOREGROUND_BLUE
                 | FOREGROUND_GREEN
@@ -104,7 +106,7 @@ void Core::output(QString message, MessageOrigin origin, MessageType messageType
 #endif
         cout << "[?]";
     }
-    else if (messageType == MESSAGE_TYPE_WARNING){
+    else if (messageType == MessageType::Warning){
 #ifdef Q_OS_WIN
         color = FOREGROUND_RED
                 | FOREGROUND_GREEN
@@ -113,7 +115,7 @@ void Core::output(QString message, MessageOrigin origin, MessageType messageType
 #endif
         cout << "[#]";
     }
-    else if (messageType == MESSAGE_TYPE_ERROR){
+    else if (messageType == MessageType::Error){
 #ifdef Q_OS_WIN
         color = FOREGROUND_RED
                 | FOREGROUND_BLUE

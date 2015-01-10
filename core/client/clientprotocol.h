@@ -57,6 +57,8 @@ public:
     QVariantHash Deserialize_SID_CHATEVENT(QByteArrayBuilder b);
     QVariantHash Deserialize_SID_STARTADVEX3(QByteArrayBuilder b);
     QVariantHash Deserialize_SID_GETADVLISTEX(QByteArrayBuilder b);
+    QVariantHash Deserialize_SID_CLANINFO(QByteArrayBuilder b);
+    QVariantHash Deserialize_SID_FRIENDSLIST(QByteArrayBuilder in);
 private:
 
 };

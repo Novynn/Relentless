@@ -7,7 +7,10 @@
 #include <QDebug>
 #include <QDir>
 #include "coreobject.h"
-#include "plugin.h"
+#include "plugin/plugin.h"
+
+//class Plugin;
+class QFileSystemWatcher;
 
 class PluginCore : public CoreObject
 {
@@ -21,15 +24,24 @@ public:
         return "PC";
     }
 
+    void printMessage(Plugin* plugin, QString message, MessageType type = MessageType::Default);
+
     void loadPlugins(QDir path);
 
     void linkPlugin(Plugin *plugin);
+    void unloadPlugin(Plugin *plugin);
+    bool loadPlugin(QDir path, QString fileName);
 private:
-    void loadPlugin(QObject *object, QJsonObject metaData);
-    QMultiHash<QString, Plugin*> plugins;
+    bool loadPlugin(QObject *object, QJsonObject pluginData);
+    PluginHash plugins;
+    QHash<QString, Plugin*> pluginPaths;
+    QHash<Plugin*, QPluginLoader*> pluginLoaders;
+
+    QFileSystemWatcher* watcher;
 
 public slots:
-    void pluginUnloading();
+    void pluginUnloading(bool silently);
+    void pluginChanged(const QString &filePath);
 };
 
 #endif // PLUGINCORE_H

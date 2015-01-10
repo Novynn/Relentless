@@ -28,7 +28,7 @@ public:
     
     QTcpSocket* socket;
     bool initialize(int socketDescriptor);
-    void addChat(QString s, Core::MessageType type = Core::MESSAGE_TYPE_DEFAULT);
+    void addChat(QString s, MessageType type = MessageType::Default);
 
     QString name(){return mPlayerName;}
 

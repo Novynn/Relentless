@@ -36,9 +36,14 @@ void ClientCore::loadClients(){
     info("Finished loading clients (@" + QString::number(core()->uptime()) + "ms)");
 }
 
-void ClientCore::clientOutput(QString message, QString identifier, Core::MessageType type){
-    //message = message.prepend("[%1] ").arg(identifier);
+void ClientCore::clientOutput(Client* client, QString message, MessageType type){
+    QString identifier = client->getIdentifier();
     core()->printMessage(message, MessageOrigin(alias() + "\\" + identifier), type);
+
+    QVariantHash data;
+    data.insert("message", message);
+    data.insert("type", QVariant::fromValue<MessageType>(type));
+    emitEvent(client, "output", data);
 }
 
 QHash<QString, QString> ClientCore::getBlocks(const QString fileName, const QString parentName){
@@ -289,7 +294,6 @@ bool ClientCore::newClient(const QString configFile){
     }
     //info("Creating client... (@" + QString::number(core()->uptime()) + "ms)");
     Client* client = new Client(identifier, this, settings);
-    linkClientEvents(client);
     if (!client->load()){
         warning("Configuration of [" + configFile + "] is invalid.");
         client->unload();
@@ -297,24 +301,49 @@ bool ClientCore::newClient(const QString configFile){
         return false;
     }
     clients.insert(client->getIdentifier(), client);
-    //info("Client created! (@" + QString::number(core()->uptime()) + "ms)");
+    info("Client created! (@" + QString::number(core()->uptime()) + "ms)");
 
-    emit eventNewClient(client->getIdentifier());
+    emitEvent(client, "created");
 
     return true;
 }
 
-void ClientCore::linkClientEvents(Client* client) {
-    this->connect(client, &Client::eventIncomingData, [this, client](Packet* packet){
-        emit eventClientIncomingData(client->getIdentifier(), packet);
-    });
-    this->connect(client, &Client::eventOutgoingData, [this, client](Packet* packet){
-        emit eventClientOutgoingData(client->getIdentifier(), packet);
-    });
+void ClientCore::emitEvent(Client* client, QString event, QVariantHash data) {
+    QVariantHash log;
+    log.insert("client", client->getIdentifier());
+    log.insert("event", event);
+    log.insert("data", data);
+    eventLog.enqueue(log);
+
+    emit clientEvent(event, client->getIdentifier(), data);
 }
 
-void ClientCore::unlinkClientEvents(Client* client) {
-    this->disconnect(client);
+void ClientCore::clientRequest(QString event, QString id, QVariantHash data)
+{
+    Client* client = getClient(id);
+    if (!client) return;
+    if (event.toLower() == "message") {
+        QString message = data.value("message", "").toString();
+        client->command(message);
+        if (message.left(1) != "/"){
+            QVariantHash callback;
+            callback.insert("username", client->username());
+            callback.insert("text", message);
+            emitEvent(client, "chat_usertalk", callback);
+        }
+    }
+    if (event.toLower() == "destroy") {
+        info("Recieved a request to destroy the client: " + id);
+        removeClient(client);
+    }
+    if (event.toLower() == "connect") {
+        info("Recieved a request to connect the client: " + id);
+        client->connectClient();
+    }
+    if (event.toLower() == "disconnect") {
+        info("Recieved a request to disconnect the client: " + id);
+        client->disconnectClient();
+    }
 }
 
 Client* ClientCore::getClient(const QString clientAlias){
@@ -343,11 +372,16 @@ bool ClientCore::removeClient(const QString clientAlias){
 }
 
 bool ClientCore::removeClient(Client* client){
-    QString alias = client->getIdentifier();
-    unlinkClientEvents(client);
-    if (client) delete client;
+    if (client) {
+        QString alias = client->getIdentifier();
+        emitEvent(client, "destroyed");
+        client->unload();
+        delete client;
+        clients.remove(alias);
+    }
     client = 0;
-    return (clients.remove(alias) > 0);
+
+    return true;
 }
 
 void ClientCore::unloadClients(){
@@ -355,21 +389,18 @@ void ClientCore::unloadClients(){
 }
 
 void ClientCore::unloadClient(Client *client){
-    client->unload();
     removeClient(client);
 }
 
 void ClientCore::sendConnectSignal(){
     foreach(Client* client, clients.values()){
-        client->connect();
+        client->connectClient();
     }
 }
 
 void ClientCore::sendDisconnectSignal(){
     foreach(Client* client, clients.values()){
-        client->disconnect();
+        client->disconnectClient();
     }
 }
-
-
 

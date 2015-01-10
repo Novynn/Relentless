@@ -34,29 +34,42 @@ Client::Client(const QString identifier, ClientCore *parent, QSettings *set)
     queueTimer = new QTimer(this);
     queueTimer->setInterval(30);
     QObject::connect(queueTimer, SIGNAL(timeout()), this, SLOT(readySend()));
+
+    _friendsUpdateTimer = new QTimer(this);
+    _friendsUpdateTimer->setInterval(10000);
 }
 
 inline void Client::print(QString message){
-    clientCore->clientOutput(message, getIdentifier());
+    clientCore->clientOutput(this, message);
 }
 inline void Client::info(QString message){
-    clientCore->clientOutput(message, getIdentifier(), Core::MESSAGE_TYPE_INFO);
+    clientCore->clientOutput(this, message, MessageType::Info);
 }
 inline void Client::warning(QString message){
-    clientCore->clientOutput(message, getIdentifier(), Core::MESSAGE_TYPE_WARNING);
+    clientCore->clientOutput(this, message, MessageType::Warning);
 }
 inline void Client::error(QString message){
-    clientCore->clientOutput(message, getIdentifier(), Core::MESSAGE_TYPE_ERROR);
+    clientCore->clientOutput(this, message, MessageType::Error);
 }
-inline void Client::printMessage(QString message, Core::MessageType messageType){
-    clientCore->clientOutput(message, getIdentifier(), messageType);
+inline void Client::printMessage(QString message, MessageType messageType){
+    clientCore->clientOutput(this, message, messageType);
 }
 void Client::command(QString message){
-    clientProtocol->Serialize_SID_CHATCOMMAND(message);
+    // Rebuild
+    QString stripped;
+    for (int i = 0; i < message.length(); i++) {
+        char c = message.at(i).toLatin1();
+        if (c >= 0x20) {
+            stripped.append(c);
+        }
+    }
+    if (stripped.length() > 223) stripped.mid(0, 223); // Trim
+
+    send(clientProtocol->Serialize_SID_CHATCOMMAND(stripped));
 }
 
 bool Client::load(){
-    emit eventInitializing();
+    emitEvent("initializing");
     QFileInfo info = QFileInfo(settings->fileName());
     QString fileName = info.fileName();
     QString tempMessage = "";
@@ -167,9 +180,9 @@ void Client::unload(){
     queueTimer->stop();
     if (status() == CLIENT_CONNECTING
             || status() == CLIENT_CONNECTED
-            || status() == CLIENT_CONNECTED_HOSTING) disconnect();
+            || status() == CLIENT_CONNECTED_HOSTING) disconnectClient();
     setStatus(CLIENT_DISABLED);
-    emit eventTerminating();
+    emitEvent("terminating");
 }
 
 void Client::bnlsSSLError(const QList<QSslError> &list){
@@ -182,10 +195,10 @@ void Client::bnlsSSLError(const QList<QSslError> &list){
     bnls->ignoreSslErrors();
 }
 
-bool Client::connect(){
+bool Client::connectClient(){
     info("Connecting to bnls...");
     setStatus(CLIENT_CONNECTING);
-    emit eventConnecting();
+    emitEvent("connecting");
     bnls->close();
     if (bnlsSecure)
         bnls->connectToHostEncrypted(bnlsHost, bnlsPort);
@@ -194,23 +207,26 @@ bool Client::connect(){
     return true;
 }
 
-void Client::disconnect(){
+void Client::disconnectClient(){
+    if (status() == Client::CLIENT_DISCONNECTED) return;
+    info("Disconnected.");
     setStatus(Client::CLIENT_DISCONNECTED);
-    emit eventDisconnected();
-    if (bnls->state() != QAbstractSocket::UnconnectedState) bnls->close();
-    if (bncs->state() != QAbstractSocket::UnconnectedState) bncs->close();
+    emitEvent("disconnected");
+    if (bnls->state() != QAbstractSocket::UnconnectedState) bnls->abort();
+    if (bncs->state() != QAbstractSocket::UnconnectedState) bncs->abort();
 }
 
 void Client::bncsConnect(){
     BNLSPacket* packet = clientProtocol->Serialize_BNLS_CHOOSENLSREVISION();
     packet->setImportant();
     send(packet);
+
     bncs->connectToHost(bncsHost, bncsPort);
 }
 
 void Client::bncsConnected(){
-    info(QString("BNCS [%1:%2]: Connected!").arg(bncsHost).arg(bncsPort));
-    emit eventConnected();
+    info(QString("BNCS [%1:%2]: Connected!").arg(bncs->peerAddress().toString()).arg(bncsPort));
+    emitEvent("connected");
     loginStarted();
 
     QByteArrayBuilder b;
@@ -229,9 +245,8 @@ void Client::bncsConnected(){
 }
 
 void Client::bncsDisconnected(){
-    warning(QString("BNCS [%1:%2]: Disconnected!").arg(bncsHost).arg(bncsPort));
-    if (bncs->state() != QAbstractSocket::UnconnectedState)
-        disconnect();
+    warning(QString("BNCS [%1:%2]: Connection closed.").arg(bncsHost).arg(bncsPort));
+    disconnectClient();
 }
 
 void Client::bncsReadyRead(){
@@ -275,7 +290,7 @@ void Client::bnlsDisconnected(){
     if (status() == CLIENT_DISCONNECTED) return;
 
     error(QString("BNLS [%1:%2]: Unexpectedly disconnected").arg(bnlsHost).arg(bnlsPort));
-    disconnect();
+    disconnectClient();
 }
 
 void Client::bnlsReadyRead(){
@@ -417,7 +432,14 @@ void Client::handlePackets(){
             case BNCSPacket::SID_GETADVLISTEX:
                 Recv_SID_GETADVLISTEX(p->data());
                 break;
-            case 0x4C: // Extra Work
+            case BNCSPacket::SID_CLANINFO:
+                Recv_SID_CLANINFO(p->data());
+                break;
+            case BNCSPacket::SID_FRIENDSLIST:
+                Recv_SID_FRIENDSLIST(p->data());
+                break;
+            case BNCSPacket::SID_REQUIREDWORK:
+            case BNCSPacket::SID_EXTRAWORK:// Extra Work
                 // We can safely ignore this.
                 break;
             default:
@@ -454,6 +476,35 @@ void Client::handlePackets(){
     }
 }
 
+void Client::Recv_SID_CLANINFO(QByteArrayBuilder b){
+    QVariantHash data = clientProtocol->Deserialize_SID_CLANINFO(b);
+
+    QString clan = data.value("clan").toString();
+    quint8 rank = data.value("rank").toUInt();
+    QString rankString = "";
+    switch (rank){
+    case 0x00:
+        rankString = "Peon (New Member)";
+        break;
+    case 0x01:
+        rankString = "Peon";
+        break;
+    case 0x02:
+        rankString = "Grunt";
+        break;
+    case 0x03:
+        rankString = "Shaman";
+        break;
+    case 0x04:
+        rankString = "Chieftain";
+        break;
+    default:
+        rankString = "Unknown";
+    }
+
+    info("Clan Info: " + rankString + " in Clan " + clan);
+}
+
 void Client::Recv_BNLS_CHOOSENLSREVISION(QByteArrayBuilder b){
     QVariantHash data = clientProtocol->Deserialize_BNLS_CHOOSENLSREVISION(b);
     b.reset();
@@ -463,7 +514,7 @@ void Client::Recv_BNLS_CHOOSENLSREVISION(QByteArrayBuilder b){
     if (success == 1) return;
     error("The BNLS server couldn't set the NLS revision (error code: " + QString::number(success) + ").");
     qDebug() << b.toReadableString();
-    disconnect();
+    disconnectClient();
 }
 
 void Client::Recv_BNLS_CDKEY_EX(QByteArrayBuilder b){
@@ -473,7 +524,7 @@ void Client::Recv_BNLS_CDKEY_EX(QByteArrayBuilder b){
     uint keyCount = data.value("scount").toUInt();
     if (keyCount != data.value("rcount").toUInt()){
         error("The BNLS server could not solve the provided CD-Keys, make sure they are correct.");
-        disconnect();
+        disconnectClient();
     }
 
     QByteArray keyData;
@@ -571,7 +622,7 @@ void Client::Recv_SID_AUTH_CHECK(QByteArrayBuilder b){
     if (result != 0){
         QString info = data.value("info").toString();
         error("Could not log in due to [0x" + QString::number(result, 16) + "] [" + info + "]");
-        disconnect();
+        disconnectClient();
         return;
 
     }
@@ -625,7 +676,7 @@ void Client::Recv_SID_ACCOUNTLOGONPROOF(QByteArrayBuilder b){
             error("Unknown Error [" + data.value("info").toString() + "]");
             break;
         }
-        disconnect();
+        disconnectClient();
         return;
     }
     loginFinished();
@@ -640,6 +691,11 @@ void Client::RequestGameList() {
     send(p);
 }
 
+void Client::emitEvent(QString event, QVariantHash data)
+{
+    clientCore->emitEvent(this, event, data);
+}
+
 void Client::Recv_SID_ENTERCHAT(QByteArrayBuilder b){
     QVariantHash data = clientProtocol->Deserialize_SID_ENTERCHAT(b);
 
@@ -647,7 +703,7 @@ void Client::Recv_SID_ENTERCHAT(QByteArrayBuilder b){
 
     info("Entered chat with the unique username [" + username() + "]");
 
-    emit eventEnteredChat(username());
+    emitEvent("entered_chat");
 
     settings->beginGroup("Main");
     QString channel = settings->value("firstchannel", "necotest").toString();
@@ -656,18 +712,21 @@ void Client::Recv_SID_ENTERCHAT(QByteArrayBuilder b){
     BNCSPacket* p = clientProtocol->Serialize_SID_JOINCHANNEL(channel, 0x02);
     send(p);
 
-    RequestGameList();
-    GameCore* gCore = clientCore->core()->getGameCore();
-    if (gCore->games().count() == 0){
+    BNCSPacket* f = new BNCSPacket(BNCSPacket::SID_FRIENDSLIST);
+    send(f);
 
-        Game* game = new Game(gCore);
-        game->loadMap("uxIslandDefense3.w3x");
-        game->setName("necotest");
-        QString &hostname = game->hostname();
-        hostname = username();
+//    RequestGameList();
+//    GameCore* gCore = clientCore->core()->getGameCore();
+//    if (gCore->games().count() == 0){
 
-        gCore->newGame(game);
-    }
+//        Game* game = new Game(gCore);
+//        game->loadMap("uxIslandDefense3.w3x");
+//        game->setName("necotest");
+//        QString &hostname = game->hostname();
+//        hostname = username();
+
+//        gCore->newGame(game);
+//    }
 }
 
 void Client::Recv_SID_CHATEVENT(QByteArrayBuilder b){
@@ -694,76 +753,88 @@ void Client::Recv_SID_CHATEVENT(QByteArrayBuilder b){
 
     QString username = data.value("username", "").toString();
     QString text = data.value("text", "").toString();
-    QString flags = data.value("flags", "").toString();
+    quint32 flags = data.value("flags", 0).toUInt();
+    quint32 ping = data.value("ping", 0).toUInt();
+
+    QString event = "chat_event";
+    QVariantHash eventData;
+    eventData.insert("channel_current", currentChannel);
+    eventData.insert("username", username);
+    eventData.insert("text", text);
+    eventData.insert("flags", flags);
+    eventData.insert("ping", ping);
 
     switch (id){
     case (BNCSPacket::EID_SHOWUSER):
+        event = "chat_usershow";
         info(QString("channel.%0> %1 (%2) is in the channel.").arg(currentChannel, username, text));
-        emit eventUserInChannel(currentChannel, username, flags);
         break;
     case (BNCSPacket::EID_JOIN):
+        event = "chat_userjoin";
         info(QString("channel.%0.join> %1 (%2) has joined the channel.").arg(currentChannel, username, text));
-        emit eventUserJoins(currentChannel, username, flags);
         break;
     case (BNCSPacket::EID_LEAVE):
+        event = "chat_userleave";
         info(QString("channel.%0.leave> %1 (%2) has left the channel.").arg(currentChannel, username));
-        emit eventUserLeaves(currentChannel, username, flags);
         break;
     case (BNCSPacket::EID_WHISPER):
+        event = "chat_userwhisper";
         info(QString("whisper.from.%0> %1").arg(username, text));
-        emit eventUserWhisper(username, text);
         break;
     case (BNCSPacket::EID_TALK):
+        event = "chat_usertalk";
         info(QString("channel.%0.%1> %2").arg(currentChannel, username, text));
-        emit eventUserTalk(currentChannel, username, text);
         break;
     case (BNCSPacket::EID_BROADCAST):
+        event = "chat_serverbroadcast";
         info(QString("server.broadcast.%0> %1").arg(username, text));
-        emit eventServerInfo(username, text);
         break;
     case (BNCSPacket::EID_CHANNEL):
+        event = "chat_channeljoin";
         if (!currentChannel.isEmpty()){
-            emit eventChannelLeave(currentChannel);
+            emitEvent("channel_leave");
         }
         currentChannel = text;
+        eventData["channel_current"] =  currentChannel;
         info(QString("channel.%0.joined>").arg(currentChannel));
-        emit eventChannelJoin(currentChannel);
         break;
     case (BNCSPacket::EID_USERFLAGS):
+        event = "chat_userupdate";
         info(QString("channel.%0> %1 (%2) has updated.").arg(currentChannel, username, text));
-        emit eventFlagUpdate(currentChannel, username, flags);
         break;
     case (BNCSPacket::EID_WHISPERSENT):
+        event = "chat_userwhispersent";
         info(QString("whisper.to.%0> %1").arg(username, text));
-        emit eventWhisperSent(username, text);
         break;
     case (BNCSPacket::EID_CHANNELFULL):
+        event = "chat_channelfull";
         info(QString("channel.%0.full> %1").arg(username, text));
-        emit eventServerError(username, text);
         break;
     case (BNCSPacket::EID_CHANNELDOESNOTEXIST):
+        event = "chat_channelgone";
         info(QString("channel.%0.nonexistant> %1").arg(username, text));
-        emit eventServerError(username, text);
         break;
     case (BNCSPacket::EID_CHANNELRESTRICTED):
+        event = "chat_channelrestricted";
         info(QString("channel.%0.restricted> %1").arg(username, text));
-        emit eventServerError(username, text);
         break;
     case (BNCSPacket::EID_INFO):
+        event = "chat_serverinfo";
         info(QString("server.info.%0> %1").arg(username, text));
-        emit eventServerInfo(username, text);
         break;
     case (BNCSPacket::EID_ERROR):
+        event = "chat_servererror";
         info(QString("server.error.%0> %1").arg(username, text));
-        emit eventServerError(username, text);
         break;
     case (BNCSPacket::EID_EMOTE):
+        event = "chat_useremote";
         info(QString("channel.%0.%1.emote> %2").arg(currentChannel, username, text));
-        emit eventUserEmote(currentChannel, username, text);
         break;
     default:
         break;
     }
+
+    emitEvent(event, eventData);
 }
 
 void Client::Recv_SID_STARTADVEX3(QByteArrayBuilder b){
@@ -794,6 +865,28 @@ void Client::Recv_SID_GETADVLISTEX(QByteArrayBuilder b)
         QVariantHash game = g.toHash();
         qDebug() << game.value("name", "").toString();
     }
+}
+
+void Client::Recv_SID_FRIENDSLIST(QByteArrayBuilder b)
+{
+    QVariantHash data = clientProtocol->Deserialize_SID_FRIENDSLIST(b);
+    QVariantList friends = data.value("friends").toList();
+    for (QVariant v : friends) {
+        QVariantHash friendData = v.toHash();
+        QString name = friendData.value("account").toString();
+        QString product = friendData.value("product").toString();
+
+        Friend* _friend = new Friend(name, product);
+
+        Friend::Status status = (Friend::Status) friendData.value("status").toUInt();
+        Friend::Location location = (Friend::Location) friendData.value("location").toUInt();
+        QString locationDetail = friendData.value("location_detail").toString();
+
+        _friend->update(status, location, locationDetail);
+
+        _friends.append(_friend);
+    }
+    emitEvent("friends_list", data);
 }
 
 // END
@@ -891,7 +984,7 @@ void Client::loginStarted(){
     print("Login started.");
     loginStart = QDateTime::currentMSecsSinceEpoch();
     setStatus(CLIENT_AUTHENTICATING);
-    emit eventLoggingIn();
+    emitEvent("logging_in");
 }
 
 void Client::loginFinished(){
@@ -900,18 +993,22 @@ void Client::loginFinished(){
 
     info("Login took [" + QString::number(loginTime) + "] milliseconds");
     setStatus(CLIENT_CONNECTED);
-    emit eventLoggedIn();
+    emitEvent("logged_in");
 
     BNCSPacket* p = clientProtocol->Serialize_SID_NETGAMEPORT(6112);
     send(p);
 }
 
 void Client::incomingPacket(Packet *p){
-    emit eventIncomingData(p);
+    QVariantHash data;
+    data.insert("packet", QVariant::fromValue<Packet*>(p));
+    emitEvent("incoming_data", data);
 }
 
 void Client::outgoingPacket(Packet *p){
-    emit eventOutgoingData(p);
+    QVariantHash data;
+    data.insert("packet", QVariant::fromValue<Packet*>(p));
+    emitEvent("outgoing_data", data);
 }
 
 void Client::channelJoin(QString channel){

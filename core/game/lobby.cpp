@@ -152,7 +152,7 @@ void Lobby::handleChat(Player* player, W3GSPacket* p) {
             if (to != 0) {
                 sendMessageToPlayer(player, to, text, flag, extraFlags);
             }
-            player->addChat("Chat: " + text, Core::MESSAGE_TYPE_INFO);
+            player->addChat("Chat: " + text, MessageType::Info);
         }
         else {
             handleSlotChangeRequest(player, message);

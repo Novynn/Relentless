@@ -52,6 +52,9 @@ protected:
     qint64 mActiveTime;
 };
 
+typedef Packet* PacketStar;
+Q_DECLARE_METATYPE(PacketStar)
+
 QDebug operator<<(QDebug dbg, const Packet* p);
 
 #endif // PACKET_H

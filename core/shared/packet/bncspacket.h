@@ -139,7 +139,7 @@ public:
     Q_ENUMS(PacketId)
     Q_ENUMS(EventId)
 
-    explicit BNCSPacket(PacketId pId, QByteArray data = QByteArray(), Locality from = Packet::FROM_LOCAL)
+    BNCSPacket(PacketId pId, QByteArray data = QByteArray(), Locality from = Packet::FROM_LOCAL)
         : Packet(data, from), mPId(pId){
         if (locality() == Packet::FROM_SERVER)
             stripHeader();

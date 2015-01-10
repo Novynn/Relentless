@@ -90,8 +90,8 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QDebug>
-#include "shared/functions.h"
-#include "shared/qbytearraybuilder.h"
+#include "functions.h"
+#include "qbytearraybuilder.h"
 #include "mpqarchive.h"
 #include "mpqfile.h"
 #include "crc32.h"

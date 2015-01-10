@@ -48,7 +48,7 @@ void Logger::log(QString message, MessageOrigin origin){
     }
 
     QString now = QDateTime::currentDateTime().toString("hh:mm:ss:zzz");
-    QString data = logFormat.arg(origin.first(), now, message);
+    QString data = logFormat.arg(origin.toString(), now, message);
 
     logFile->write(data.toUtf8() + "\n");
     logFile->flush();

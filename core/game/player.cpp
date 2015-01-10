@@ -28,7 +28,7 @@ void Player::close() {
 }
 
 void Player::disconnected(){
-    addChat("Player disconnected.", Core::MESSAGE_TYPE_DEFAULT);
+    addChat("Player disconnected.", MessageType::Default);
     mGame->removePlayer(this);
     deleteLater();
 }
@@ -37,7 +37,7 @@ void Player::readyRead(){
     extractPackets();
 }
 
-void Player::addChat(QString s, Core::MessageType type){
+void Player::addChat(QString s, MessageType type){
     gameCore->printMessage(s.prepend("[%1] ").arg(mPlayerName), type);
 }
 
@@ -85,7 +85,7 @@ void Player::extractPackets(){
         }
         else {
             addChat("Unhandled packet (0x" + QString::number(packet->packetId(), 16) + ") recieved while idle...",
-                Core::MESSAGE_TYPE_ERROR);
+                MessageType::Error);
         }
     }
 }
@@ -129,7 +129,7 @@ void Player::Recv_W3GS_REQJOIN(QByteArrayBuilder b){
                 .arg(socket->peerName())
                 .arg(socket->peerAddress().toString())
                 .arg(socket->peerPort()),
-            Core::MESSAGE_TYPE_INFO);
+            MessageType::Info);
 
     emit joinRequest(this, actualHostCounter);
 }

@@ -7,6 +7,7 @@
 #include <QDir>
 #include "logger.h"
 #include "shared/MessageOrigin.h"
+#include "shared/MessageType.h"
 
 #include <iostream>
 
@@ -18,7 +19,6 @@ class GameCore;
 class Core : public QObject
 {
     Q_OBJECT
-    Q_ENUMS(MessageType)
 
     friend class CoreObject;
 public:
@@ -29,13 +29,6 @@ public:
         return QDir::currentPath().append("/clients/");
     }
 
-    enum MessageType {
-        MESSAGE_TYPE_DEFAULT,
-        MESSAGE_TYPE_INFO,
-        MESSAGE_TYPE_WARNING,
-        MESSAGE_TYPE_ERROR
-    };
-
     struct QueuedMessage {
         QString message;
         MessageOrigin origin;
@@ -43,25 +36,25 @@ public:
     };
     
     inline void print(QString message, MessageOrigin origin = MessageOrigin("Core")){
-        printMessage(message, origin, MESSAGE_TYPE_DEFAULT);
+        printMessage(message, origin, MessageType::Default);
     }
 
     inline void info(QString message, MessageOrigin origin = MessageOrigin("Core")){
-        printMessage(message, origin, MESSAGE_TYPE_INFO);
+        printMessage(message, origin, MessageType::Info);
     }
 
     inline void warning(QString message, MessageOrigin origin = MessageOrigin("Core")){
-        printMessage(message, origin, MESSAGE_TYPE_WARNING);
+        printMessage(message, origin, MessageType::Warning);
     }
 
     inline void error(QString message, MessageOrigin origin = MessageOrigin("Core")){
-        printMessage(message, origin, MESSAGE_TYPE_ERROR);
+        printMessage(message, origin, MessageType::Error);
     }
 
 
     void printMessage(QString message,
                MessageOrigin origin = MessageOrigin("Core"),
-               MessageType messageType = MESSAGE_TYPE_DEFAULT);
+               MessageType messageType = MessageType::Default);
 
     ClientCore* getClientCore(){return clientCore;}
     GameCore* getGameCore(){return gameCore;}

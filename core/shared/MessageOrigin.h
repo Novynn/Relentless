@@ -3,10 +3,10 @@
 
 #include <QStringList>
 
-class MessageOrigin {
+class Origin {
 public:
-    MessageOrigin(QStringList l){list = l;}
-    MessageOrigin(QString l){list = l.split("\\", QString::SkipEmptyParts);}
+    Origin(QStringList l){list = l;}
+    explicit Origin(QString l = QString()){list = l.split("\\", QString::SkipEmptyParts);}
 
     QString first() const {
         return list.at(0);
@@ -27,5 +27,9 @@ private:
     QStringList list;
 
 };
+
+Q_DECLARE_METATYPE(Origin)
+
+typedef Origin MessageOrigin;
 
 #endif // MESSAGEORIGIN_H

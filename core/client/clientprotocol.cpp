@@ -81,6 +81,22 @@ QVariantHash ClientProtocol::Deserialize_SID_GETADVLISTEX(QByteArrayBuilder b)
     return out;
 }
 
+QVariantHash ClientProtocol::Deserialize_SID_CLANINFO(QByteArrayBuilder b)
+{
+    QVariantHash out;
+    b.getByte();
+    QString clan = b.getVoid(4);
+    QString reversed = "";
+    reversed.reserve(4);
+    for (int i = clan.size() - 1; i >= 0; i--) {
+        reversed.insert(0, clan.at(i));
+    }
+
+    out["clan"] = reversed;
+    out["rank"] = b.getByte();
+    return out;
+}
+
 QVariantHash ClientProtocol::Deserialize_SID_ENTERCHAT(QByteArrayBuilder b){
     QVariantHash out;
     out["uname"] = b.getString();       // (STRING) Unique name
@@ -126,6 +142,26 @@ BNCSPacket* ClientProtocol::Serialize_SID_ACCOUNTLOGINPROOF(const QByteArray pas
 QVariantHash ClientProtocol::Deserialize_BNLS_LOGONPROOF(QByteArrayBuilder in){
     QVariantHash out;
     out["passwordproof"] = in.getVoid(20);
+    return out;
+}
+
+QVariantHash ClientProtocol::Deserialize_SID_FRIENDSLIST(QByteArrayBuilder in) {
+    QVariantHash out;
+    quint8 total = in.getByte();
+    out["total"] = total;
+
+    QVariantList friends;
+    for (int i = 0; i < total; i++) {
+        QVariantHash f;
+        f["account"] = in.getString();
+        f["location"] = in.getByte();
+        f["status"] = in.getByte();
+        f["product"] = in.getString(4);
+        f["location_detail"] = in.getString();
+        friends.append(f);
+    }
+    out["friends"] = friends;
+
     return out;
 }
 

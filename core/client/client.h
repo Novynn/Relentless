@@ -8,7 +8,7 @@
 #include "clientcore.h"
 #include "game/game.h"
 #include "clientprotocol.h"
-
+#include "friend.h"
 #include "shared/packet/packet.h"
 
 class ClientCore;
@@ -56,8 +56,8 @@ public:
 
     bool load();
     void unload();
-    bool connect();
-    void disconnect();
+    bool connectClient();
+    void disconnectClient();
 
     void bncsConnect();
     void handlePackets();
@@ -66,7 +66,7 @@ public:
     void info(QString message);
     void warning(QString message);
     void error(QString message);
-    void printMessage(QString message, Core::MessageType messageType = Core::MESSAGE_TYPE_DEFAULT);
+    void printMessage(QString message, MessageType messageType = MessageType::Default);
 
     void command(QString message);
 
@@ -74,7 +74,9 @@ public:
     void hostRefresh();
     void endHosting();
     void RequestGameList();
+    void Recv_SID_CLANINFO(QByteArrayBuilder b);
 private:
+    void emitEvent(QString event, QVariantHash data = QVariantHash());
     // BNLS Packet handling
     void Recv_BNLS_CHOOSENLSREVISION(QByteArrayBuilder b);
     void Recv_BNLS_CDKEY_EX(QByteArrayBuilder b);
@@ -92,6 +94,7 @@ private:
     void Recv_SID_CHATEVENT(QByteArrayBuilder b);
     void Recv_SID_STARTADVEX3(QByteArrayBuilder b);
     void Recv_SID_GETADVLISTEX(QByteArrayBuilder b);
+    void Recv_SID_FRIENDSLIST(QByteArrayBuilder b);
     //
 
     void send(Packet* p);
@@ -152,56 +155,9 @@ private:
     int pingMode;
 
     Status mStatus;
-signals:
-    void eventConnecting();
-    void eventConnected();
-    void eventLoggingIn();
-    void eventLoggedIn();
-    void eventEnteredChat(QString);
-    void eventError();
-    void eventWarning();
-    void eventInfo();
-    void eventDisconnected();
 
-
-    void eventIncomingData(Packet* p);
-    void eventOutgoingData(Packet* p);
-
-    void eventInitializing();
-    void eventTerminating();
-
-    void eventServerInfo(QString username, QString text);
-    void eventServerError(QString username, QString text);
-    void eventUserTalk(QString channel, QString username, QString text);
-    void eventUserEmote(QString channel, QString username, QString text);
-    void eventUserWhisper(QString username, QString text);
-    void eventWhisperSent(QString username, QString text);
-    void eventUserJoins(QString channel, QString username, QString flags);
-    void eventUserLeaves(QString channel, QString username, QString flags);
-    void eventUserInChannel(QString channel, QString username, QString flags);
-    void eventFlagUpdate(QString channel, QString username, QString flags);
-    void eventChannelJoin(QString joiningChannel);
-    void eventChannelLeave(QString leavingChannel);
-    void eventMessagePrepared(); // "PressedEnter"
-    void eventMessageSent();
-    void eventMessageQueued();
-    void eventClanInfo();
-    void eventClanMemberList();
-    void eventClanMemberUpdate();
-    void eventClanMemberLeaves();
-    void eventClanMOTD();
-    void eventClanCandidateList();
-    void eventClanPromoteUserReply();
-    void eventClanDemoteUserReply();
-    void eventClanRemoveUserReply();
-    void eventClanDisbandReply();
-    void eventClanInviteUserReply();
-    void eventClanInvitation();
-    void eventBotClanInfo();
-    void eventBotRemovedFromClan();
-    void eventBotClanRankChanged();
-    void eventBotJoinedClan();
-    void eventChannelList();
+    QList<Friend*> _friends;
+    QTimer* _friendsUpdateTimer;
 
 public slots:
     void readySend();
