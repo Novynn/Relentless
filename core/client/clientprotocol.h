@@ -34,6 +34,95 @@ public:
         return instance()->_deserialize<ClientProtocol, BNCSPacket>(p, data);
     }
 
+    // New style
+    Q_INVOKABLE void serialize_SID_AUTH_INFO(QVariantHash data, QByteArrayBuilder *out) {
+        qFatal("Not implemented.");
+    }
+
+    Q_INVOKABLE void serialize_SID_AUTH_CHECK(QVariantHash data, QByteArrayBuilder *out) {
+        //quint32 clientToken, quint32 versionCode, quint32 versionHash,
+        //int keyCount, const QByteArray keyData, const QString checkString,
+        //const QString username
+        qFatal("Not implemented.");
+    }
+    Q_INVOKABLE void serialize_SID_ACCOUNTLOGON(QVariantHash data, QByteArrayBuilder *out) {
+        //const QByteArray clientKey, const QString username
+        qFatal("Not implemented.");
+    }
+    Q_INVOKABLE void serialize_SID_ACCOUNTLOGINPROOF(QVariantHash data, QByteArrayBuilder *out) {
+        //const QByteArray passwordProof
+        qFatal("Not implemented.");
+    }
+    Q_INVOKABLE void serialize_SID_JOINCHANNEL(QVariantHash data, QByteArrayBuilder *out){
+        //const QString channel, quint32 flags = 0x00
+        qFatal("Not implemented.");
+    }
+    Q_INVOKABLE void serialize_SID_PING(QVariantHash data, QByteArrayBuilder *out){
+        //quint32 cookie
+        qFatal("Not implemented.");
+    }
+    Q_INVOKABLE void serialize_SID_CHATCOMMAND(QVariantHash data, QByteArrayBuilder *out){
+        //const QString message
+        qFatal("Not implemented.");
+    }
+    Q_INVOKABLE void serialize_SID_ENTERCHAT(QVariantHash data, QByteArrayBuilder *out){
+        qFatal("Not implemented.");
+    }
+
+    Q_INVOKABLE void serialize_SID_STOPADV(QVariantHash data, QByteArrayBuilder *out) {
+        qFatal("Not implemented.");
+    }
+
+    Q_INVOKABLE void serialize_SID_STARTADVEX3(QVariantHash data, QByteArrayBuilder *out){
+        //quint32 state, quint32 uptime, quint16 gameType, quint16 subGameType,
+        //quint32 ladderType, QString gameName, QString gamePassword, QByteArray statString
+        qFatal("Not implemented.");
+    }
+    Q_INVOKABLE void serialize_SID_NETGAMEPORT(QVariantHash data, QByteArrayBuilder *out){
+        //int port
+        qFatal("Not implemented.");
+    }
+    Q_INVOKABLE void serialize_SID_GETADVLISTEX(QVariantHash data, QByteArrayBuilder *out){
+        //quint16 gameType, quint16 subGameType, quint32 filter, quint32 count,
+        //QString name, QString password, QString statstring
+        qFatal("Not implemented.");
+    }
+
+    Q_INVOKABLE void deserialize_SID_PING(QByteArrayBuilder data, QVariantHash *out){
+        out->unite(Deserialize_SID_PING(data));
+    }
+    Q_INVOKABLE void deserialize_SID_AUTH_INFO(QByteArrayBuilder data, QVariantHash *out){
+        out->unite(Deserialize_SID_AUTH_INFO(data));
+    }
+    Q_INVOKABLE void deserialize_SID_AUTH_CHECK(QByteArrayBuilder data, QVariantHash *out){
+        out->unite(Deserialize_SID_AUTH_CHECK(data));
+    }
+    Q_INVOKABLE void deserialize_SID_ACCOUNT_LOGON(QByteArrayBuilder data, QVariantHash *out){
+        out->unite(Deserialize_SID_ACCOUNT_LOGON(data));
+    }
+    Q_INVOKABLE void deserialize_SID_ACCOUNTLOGONPROOF(QByteArrayBuilder data, QVariantHash *out){
+        out->unite(Deserialize_SID_ACCOUNTLOGONPROOF(data));
+    }
+    Q_INVOKABLE void deserialize_SID_ENTERCHAT(QByteArrayBuilder data, QVariantHash *out){
+        out->unite(Deserialize_SID_ENTERCHAT(data));
+    }
+    Q_INVOKABLE void deserialize_SID_CHATEVENT(QByteArrayBuilder data, QVariantHash *out){
+        out->unite(Deserialize_SID_CHATEVENT(data));
+    }
+    Q_INVOKABLE void deserialize_SID_STARTADVEX3(QByteArrayBuilder data, QVariantHash *out){
+        out->unite(Deserialize_SID_STARTADVEX3(data));
+    }
+    Q_INVOKABLE void deserialize_SID_GETADVLISTEX(QByteArrayBuilder data, QVariantHash *out){
+        out->unite(Deserialize_SID_GETADVLISTEX(data));
+    }
+    Q_INVOKABLE void deserialize_SID_CLANINFO(QByteArrayBuilder data, QVariantHash *out){
+        out->unite(Deserialize_SID_CLANINFO(data));
+    }
+    Q_INVOKABLE void deserialize_SID_FRIENDSLIST(QByteArrayBuilder data, QVariantHash *out){
+        out->unite(Deserialize_SID_FRIENDSLIST(data));
+    }
+
+    // Old style
     BNCSPacket* Serialize_SID_AUTH_INFO();
     BNCSPacket* Serialize_SID_AUTH_CHECK(quint32 clientToken, quint32 versionCode, quint32 versionHash, int keyCount, const QByteArray keyData, const QString checkString, const QString username);
     BNCSPacket* Serialize_SID_ACCOUNTLOGON(const QByteArray clientKey, const QString username);
