@@ -49,7 +49,7 @@ public:
         return mPId;
     }
 
-    void sendPacket(W3GSPacket *packet);
+    void sendPacket(Packet *packet);
     void Recv_W3GS_LEAVEREQ(QByteArrayBuilder b);
     void Send_W3GS_LEAVERS();
     void Recv_W3GS_REQJOIN(QByteArrayBuilder b);

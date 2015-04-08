@@ -44,7 +44,9 @@ SOURCES += main.cpp \
     logger.cpp \
     plugins/plugincore.cpp \
     game/gameprotocol.cpp \
-    game/map/slotmap.cpp
+    game/map/slotmap.cpp \
+    client/clientproxy.cpp \
+    client/bnlsprotocol.cpp
 
 HEADERS += \
     core.h \
@@ -76,7 +78,10 @@ HEADERS += \
     game/gameprotocol.h \
     shared/plugin/plugin.h \
     shared/MessageType.h \
-    client/friend.h
+    client/friend.h \
+    client/clientproxy.h \
+    client/bnlsprotocol.h \
+    client/protocol.h
 
 
 

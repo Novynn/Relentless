@@ -134,7 +134,7 @@ void Player::Recv_W3GS_REQJOIN(QByteArrayBuilder b){
     emit joinRequest(this, actualHostCounter);
 }
 
-void Player::sendPacket(W3GSPacket* packet){
+void Player::sendPacket(Packet* packet){
     if (socket && !isVirtual) {
         socket->write(packet->toPackedData());
         socket->flush();

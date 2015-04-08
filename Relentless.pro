@@ -1,5 +1,5 @@
 TEMPLATE = subdirs
 
-SUBDIRS = core
+SUBDIRS = core ../plugins
 
 QMAKE_CFLAGS = -Wno-unused-parameter

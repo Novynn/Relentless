@@ -40,7 +40,7 @@ public slots:
     virtual void load() = 0;
     virtual void unload() = 0;
 
-    void clientEvent(QString event, QString id, QVariantHash data){Q_UNUSED(event) Q_UNUSED(data)}
+    void clientEvent(QString event, QString id, QVariantHash data){Q_UNUSED(event) Q_UNUSED(id) Q_UNUSED(data)}
 signals:
     void clientRequest(QString request, QString id, QVariantHash data = QVariantHash());
     void message(QString message, MessageType type=MessageType::Default);

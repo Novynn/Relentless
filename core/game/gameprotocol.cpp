@@ -2,39 +2,6 @@
 
 GameProtocol* GameProtocol::_instance = 0;
 
-W3GSPacket* GameProtocol::serialize(W3GSPacket::PacketId packetId, QString key, QVariant value){
-    QVariantHash data;
-    data.insert(key, value);
-    return serialize(packetId, data);
-}
-
-W3GSPacket* GameProtocol::serialize(W3GSPacket::PacketId packetId, QVariantHash data){
-    QByteArrayBuilder* out = new QByteArrayBuilder();
-
-    QString method = "serialize_" + W3GSPacket::packetIdToString(packetId);
-    staticMetaObject.invokeMethod(instance(),
-                                  method.toLatin1().constData(),
-                                  Qt::DirectConnection,
-                                  Q_ARG(QVariantHash, data),
-                                  Q_ARG(QByteArrayBuilder*, out));
-
-    W3GSPacket* packet = new W3GSPacket(packetId, *out);
-    return packet;
-}
-
-QVariantHash* GameProtocol::deserialize(W3GSPacket::PacketId packetId, QByteArrayBuilder data)
-{
-    QVariantHash* out = new QVariantHash();
-
-    QString method = "deserialize_" + W3GSPacket::packetIdToString(packetId);
-    staticMetaObject.invokeMethod(instance(),
-                                  method.toLatin1().constData(),
-                                  Qt::DirectConnection,
-                                  Q_ARG(QByteArrayBuilder, data),
-                                  Q_ARG(QVariantHash*, out));
-    return out;
-}
-
 void GameProtocol::serialize_W3GS_PING_FROM_HOST(QVariantHash data, QByteArrayBuilder* out){
     // Empty
     out->insertDWord(data.value("tickcount", 0).toUInt());

@@ -1,5 +1,6 @@
 #include "clientcore.h"
 #include "client.h"
+#include "clientproxy.h"
 
 ClientCore::ClientCore(Core *parent) :
     CoreObject(parent){
@@ -257,6 +258,11 @@ QString ClientCore::parseConfigFile(const QString configFile){
 }
 
 bool ClientCore::newClient(const QString configFile){
+    if (clients.count() >= maxClients){
+        error("Maximum clients amount reached.");
+        return false;
+    }
+
     //info("Start parsing (@" + QString::number(core()->uptime()) + "ms)");
     QString path = parseConfigFile(configFile);
     //info("End parsing (@" + QString::number(core()->uptime()) + "ms)");
@@ -270,6 +276,7 @@ bool ClientCore::newClient(const QString configFile){
     settings->beginGroup("Main");
     QString identifier = settings->value("identifier", "").toString();
     QString username = settings->value("username", "").toString();
+    bool proxy = settings->value("proxy", false).toBool();
     settings->endGroup();
     uint attempts = 0;
     if (identifier.isEmpty())
@@ -287,13 +294,16 @@ bool ClientCore::newClient(const QString configFile){
         delete settings;
         return false;
     }
-    if (clients.count() >= maxClients){
-        error("Maximum clients amount reached.");
-        delete settings;
-        return false;
-    }
+
     //info("Creating client... (@" + QString::number(core()->uptime()) + "ms)");
-    Client* client = new Client(identifier, this, settings);
+    Client* client = 0;
+    if (proxy) {
+        info("Proxy Client");
+        client = new ClientProxy(identifier, this, settings);
+    }
+    else {
+        client = new Client(identifier, this, settings);
+    }
     if (!client->load()){
         warning("Configuration of [" + configFile + "] is invalid.");
         client->unload();

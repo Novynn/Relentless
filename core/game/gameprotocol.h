@@ -1,25 +1,33 @@
 #ifndef GAMEPROTOCOL_H
 #define GAMEPROTOCOL_H
 
-#include "shared/packet/w3gspacket.h"
-#include <QVariantHash>
+#include <client/protocol.h>
+#include <shared/packet/w3gspacket.h>
 
-class GameProtocol : public QObject
+class GameProtocol : public Protocol
 {
     Q_OBJECT
 public:
-    static GameProtocol* _instance;
-    static GameProtocol* instance(){
-        if (_instance == 0){
+    static GameProtocol* instance() {
+        if (_instance == 0) {
             _instance = new GameProtocol();
         }
         return _instance;
     }
 
-    static W3GSPacket* serialize(W3GSPacket::PacketId packetId, QVariantHash data = QVariantHash());
-    static W3GSPacket* serialize(W3GSPacket::PacketId packetId, QString key, QVariant value);
-    static QVariantHash* deserialize(W3GSPacket::PacketId packetId, QByteArrayBuilder data);
+    static Packet* serialize(uint p, QString s, QVariant d) {
+        return instance()->_serialize<GameProtocol, W3GSPacket>(p, s, d);
+    }
 
+    static Packet* serialize(uint p, QVariantHash data = QVariantHash()) {
+        return instance()->_serialize<GameProtocol, W3GSPacket>(p, data);
+    }
+
+    static QVariantHash* deserialize(uint p, QByteArrayBuilder data) {
+        return instance()->_deserialize<GameProtocol, W3GSPacket>(p, data);
+    }
+
+private:
     // Outgoing Data
     Q_INVOKABLE void serialize_W3GS_PING_FROM_HOST(QVariantHash data, QByteArrayBuilder* out);
     Q_INVOKABLE void serialize_W3GS_SLOTINFOJOIN(QVariantHash data, QByteArrayBuilder* out);
@@ -64,6 +72,8 @@ public:
 private:
     // Purely static, so no class creation
     GameProtocol(){}
+
+    static GameProtocol* _instance;
 };
 
 #endif // GAMEPROTOCOL_H

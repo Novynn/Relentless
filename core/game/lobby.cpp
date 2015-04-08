@@ -65,7 +65,7 @@ void Lobby::welcomePlayer(Player *player){
         data.insert("mapcrc", map()->CRC());
         data.insert("mapsha1", map()->SHA1());
 
-        W3GSPacket* out = GameProtocol::serialize(W3GSPacket::W3GS_MAPCHECK, data);
+        Packet* out = GameProtocol::serialize(W3GSPacket::W3GS_MAPCHECK, data);
         player->addChat("Checking player's map file...");
         player->sendPacket(out);
     }

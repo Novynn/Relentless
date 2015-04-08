@@ -62,13 +62,9 @@ public:
     }
 
     QString packetIdString() const {
-        return W3GSPacket::packetIdToString(mPId);
-    }
-
-    static QString packetIdToString(PacketId p) {
         QMetaObject metaObject = W3GSPacket::staticMetaObject;
         QMetaEnum metaEnum = metaObject.enumerator(metaObject.indexOfEnumerator("PacketId"));
-        return QString(metaEnum.valueToKey(p));
+        return QString(metaEnum.valueToKey(mPId));
     }
 
     Protocol protocol() const {

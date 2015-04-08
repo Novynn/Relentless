@@ -5,6 +5,8 @@
 #include <QMetaEnum>
 #include <QTimer>
 #include <QQueue>
+#include <QSslSocket>
+#include <QSslError>
 #include "clientcore.h"
 #include "game/game.h"
 #include "clientprotocol.h"
@@ -48,16 +50,14 @@ public:
     }
 
     Q_INVOKABLE const QString getIdentifier(){return mIdentifier;}
-    void setIdentifier(const QString identifier){mIdentifier = identifier;}
-    QString mIdentifier;
 
     const QString username(){return mUsername;}
     const QString realm(){return mRealm;}
 
-    bool load();
-    void unload();
-    bool connectClient();
-    void disconnectClient();
+    virtual bool load();
+    virtual void unload();
+    virtual bool connectClient();
+    virtual void disconnectClient();
 
     void bncsConnect();
     void handlePackets();
@@ -75,6 +75,8 @@ public:
     void endHosting();
     void RequestGameList();
     void Recv_SID_CLANINFO(QByteArrayBuilder b);
+    virtual bool validateSettings();
+    virtual bool loadSettings();
 private:
     void emitEvent(QString event, QVariantHash data = QVariantHash());
     // BNLS Packet handling
@@ -96,6 +98,7 @@ private:
     void Recv_SID_GETADVLISTEX(QByteArrayBuilder b);
     void Recv_SID_FRIENDSLIST(QByteArrayBuilder b);
     //
+    QString mIdentifier;
 
     void send(Packet* p);
     bool sendImmediately(Packet* p);
@@ -111,7 +114,6 @@ private:
     int queueMaxCredits;
     int queueCreditRate;
     qint64 queueTimeLastSent;
-
 private:
     ClientCore* clientCore;
     ClientProtocol* clientProtocol;
@@ -178,6 +180,8 @@ public slots:
 
     void loginStarted();
     void loginFinished();
+protected:
+    virtual void startAuthentification();
 };
 
 Q_DECLARE_METATYPE(Client*)

@@ -12,12 +12,6 @@ BNCSPacket* ClientProtocol::Serialize_SID_STOPADV(){
     return new BNCSPacket(BNCSPacket::SID_STOPADV);
 }
 
-QVariantHash ClientProtocol::Deserialize_BNLS_CHOOSENLSREVISION(QByteArrayBuilder in){
-    QVariantHash out;
-    out["success"] = in.getDWord();
-    return out;
-}
-
 QVariantHash ClientProtocol::Deserialize_SID_CHATEVENT(QByteArrayBuilder in){
     QVariantHash out;
     out["id"] = in.getDWord();
@@ -139,11 +133,7 @@ BNCSPacket* ClientProtocol::Serialize_SID_ACCOUNTLOGINPROOF(const QByteArray pas
     return new BNCSPacket(BNCSPacket::SID_AUTH_ACCOUNTLOGONPROOF, out);
 }
 
-QVariantHash ClientProtocol::Deserialize_BNLS_LOGONPROOF(QByteArrayBuilder in){
-    QVariantHash out;
-    out["passwordproof"] = in.getVoid(20);
-    return out;
-}
+
 
 QVariantHash ClientProtocol::Deserialize_SID_FRIENDSLIST(QByteArrayBuilder in) {
     QVariantHash out;
@@ -165,53 +155,7 @@ QVariantHash ClientProtocol::Deserialize_SID_FRIENDSLIST(QByteArrayBuilder in) {
     return out;
 }
 
-BNLSPacket* ClientProtocol::Serialize_BNLS_LOGONPROOF(const QByteArray salt, const QByteArray serverKey){
-    QByteArrayBuilder out;
-    out.insertVoid(salt);
-    out.insertVoid(serverKey);
-    return new BNLSPacket(BNLSPacket::BNLS_LOGONPROOF, out);
-}
 
-BNLSPacket *ClientProtocol::Serialize_BNLS_VERSIONCHECKEX2(const quint32 product, const QByteArray fileTime, const QString fileName, const QString valueString){
-    QByteArrayBuilder out;
-//    (DWORD) Product ID.*
-//    (DWORD) Flags.**
-//    (DWORD) Cookie.
-//    (FILETIME) Timestamp for version check archive.
-//    (STRING) Version check archive filename.
-//    (STRING) Checksum formula.
-    out.insertDWord(product); // 0x07, 0x08
-    out.insertDWord(0);
-    out.insertDWord(0);
-    out.insertVoid(fileTime);
-    out.insertString(fileName);
-    out.insertString(valueString);
-    return new BNLSPacket(BNLSPacket::BNLS_VERSIONCHECKEX2, out);
-}
-
-BNLSPacket *ClientProtocol::Serialize_BNLS_CDKEY_EX(const QStringList keys, quint32 serverToken){
-    QByteArrayBuilder out;
-//    (DWORD) Cookie
-//    (BYTE) Number of CD-keys to encrypt
-//    (DWORD) Flags
-//    (DWORD) [] Server session key(s), depending on flags
-//    (DWORD) [] Client session key(s), depending on flags
-//    (STRING) [] CD-keys. No dashes or spaces
-    out.insertDWord(0);
-    out.insertByte(keys.count());
-    out.insertDWord(0x01);          // CDKEY_SAME_SESSION_KEY
-    out.insertDWord(serverToken);
-    foreach(QString key, keys)
-        out.insertString(key);
-    return new BNLSPacket(BNLSPacket::BNLS_CDKEY_EX, out);
-}
-
-BNLSPacket *ClientProtocol::Serialize_BNLS_LOGONCHALLENGE(const QString username, const QString password){
-    QByteArrayBuilder out;
-    out.insertString(username);
-    out.insertString(password);
-    return new BNLSPacket(BNLSPacket::BNLS_LOGONCHALLENGE, out);
-}
 
 QVariantHash ClientProtocol::Deserialize_SID_ACCOUNT_LOGON(QByteArrayBuilder in){
     QVariantHash out;
@@ -241,47 +185,13 @@ BNCSPacket* ClientProtocol::Serialize_SID_AUTH_CHECK(quint32 clientToken,
     return new BNCSPacket(BNCSPacket::SID_AUTH_CHECK, out);
 }
 
-QVariantHash ClientProtocol::Deserialize_BNLS_CDKEY_EX(QByteArrayBuilder in){
-    QVariantHash out;
-    out["cookie"] = in.getDWord();       // (DWORD) Cookie
-    out["rcount"] = in.getByte();        // (BYTE) Number of CD-keys requested
-    out["scount"] = in.getByte();        // (BYTE) Number of successfully encrypted CD-keys
-    out["bitmask"] = in.getDWord();      // (DWORD) Bit mask
 
-    for(uint i = 0; i < out["scount"].toUInt(); ++i){                     // For each successful CD Key:
-        out["clientkey" + QString::number(i)] = in.getDWord();  // (DWORD) Client session key
-        out["keydata" + QString::number(i)] = in.getVoid(36);       // (DWORD) [9] CD-key data
-    }
-    return out;
-}
 
 BNCSPacket* ClientProtocol::Serialize_SID_ACCOUNTLOGON(const QByteArray clientKey, const QString username){
     QByteArrayBuilder out;
     out.insertVoid(clientKey);
     out.insertString(username);
     return new BNCSPacket(BNCSPacket::SID_AUTH_ACCOUNTLOGON, out);
-}
-
-QVariantHash ClientProtocol::Deserialize_BNLS_LOGONCHALLENGE(QByteArrayBuilder in){
-    QVariantHash out;
-    out["clientkey"] = in.getVoid(32);  // (DWORD)[8] Data for SID_AUTH_ACCOUNTLOGON
-    return out;
-}
-
-QVariantHash ClientProtocol::Deserialize_BNLS_VERSIONCHECKEX2(QByteArrayBuilder in){
-    QVariantHash out;
-    out["success"] = in.getDWord();
-    if (out["success"].toBool()){
-        out["version"] = in.getDWord();
-        out["checksum"] = in.getDWord();
-        out["checkstring"] = in.getString();
-        out["cookie"] = in.getDWord();
-        out["versioncode"] = in.getDWord();
-    }
-    else {
-        out["cookie"] = in.getDWord();
-    }
-    return out;
 }
 
 QVariantHash ClientProtocol::Deserialize_SID_AUTH_CHECK(QByteArrayBuilder in){
@@ -291,11 +201,6 @@ QVariantHash ClientProtocol::Deserialize_SID_AUTH_CHECK(QByteArrayBuilder in){
     return out;
 }
 
-BNLSPacket* ClientProtocol::Serialize_BNLS_CHOOSENLSREVISION(){
-    QByteArrayBuilder out;
-    out.insertDWord(0x02); // WC3
-    return new BNLSPacket(BNLSPacket::BNLS_CHOOSENLSREVISION, out);
-}
 
 QVariantHash ClientProtocol::Deserialize_SID_AUTH_INFO(QByteArrayBuilder in){
     QVariantHash out;

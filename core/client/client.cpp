@@ -1,3 +1,4 @@
+#include "bnlsprotocol.h"
 #include "client.h"
 
 Client::Client(const QString identifier, ClientCore *parent, QSettings *set)
@@ -68,8 +69,7 @@ void Client::command(QString message){
     send(clientProtocol->Serialize_SID_CHATCOMMAND(stripped));
 }
 
-bool Client::load(){
-    emitEvent("initializing");
+bool Client::loadSettings() {
     QFileInfo info = QFileInfo(settings->fileName());
     QString fileName = info.fileName();
     QString tempMessage = "";
@@ -110,24 +110,6 @@ bool Client::load(){
         mExpansion = true;
     }
 
-    if (mKey.isEmpty() || mKey.length() != 26){
-        error("Invalid key");
-        return false;
-    }
-    if (mExpansion){
-        if (mKeyEx.isEmpty() || mKeyEx.length() != 26){
-            error("Invalid Expansion Key");
-            return false;
-        }
-    }
-    if (mUsername.isEmpty()){
-        error("Invalid username");
-        return false;
-    }
-    if (mPassword.isEmpty()){
-        error("Invalid password");
-        return false;
-    }
     if (mRealm.isEmpty()){
         if (bncsHost == "useast.battle.net"){
             mRealm = "Azeroth";
@@ -168,11 +150,45 @@ bool Client::load(){
             return false;
         }
     }
+
+    return true;
+}
+
+bool Client::validateSettings() {
+    if (mKey.isEmpty() || mKey.length() != 26){
+        error("Invalid key");
+        return false;
+    }
+    if (mExpansion){
+        if (mKeyEx.isEmpty() || mKeyEx.length() != 26){
+            error("Invalid Expansion Key");
+            return false;
+        }
+    }
+    if (mUsername.isEmpty()){
+        error("Invalid username");
+        return false;
+    }
+    if (mPassword.isEmpty()){
+        error("Invalid password");
+        return false;
+    }
+
+    return true;
+}
+
+bool Client::load(){
+    emitEvent("initializing");
+
+    if (!loadSettings() || !validateSettings()){
+        error("Failed to load settings. Please check your configuration file.");
+        return false;
+    }
+
     queueTimer->stop();
     queueTimer->start();
 
     setStatus(CLIENT_IDLE);
-
     return true;
 }
 
@@ -196,9 +212,10 @@ void Client::bnlsSSLError(const QList<QSslError> &list){
 }
 
 bool Client::connectClient(){
-    info("Connecting to bnls...");
     setStatus(CLIENT_CONNECTING);
     emitEvent("connecting");
+    info("Connecting to bnls...");
+
     bnls->close();
     if (bnlsSecure)
         bnls->connectToHostEncrypted(bnlsHost, bnlsPort);
@@ -217,23 +234,24 @@ void Client::disconnectClient(){
 }
 
 void Client::bncsConnect(){
-    BNLSPacket* packet = clientProtocol->Serialize_BNLS_CHOOSENLSREVISION();
-    packet->setImportant();
-    send(packet);
-
+    info(QString("BNCS [%1:%2]: Connecting...").arg(bncsHost).arg(bncsPort));
     bncs->connectToHost(bncsHost, bncsPort);
 }
 
 void Client::bncsConnected(){
     info(QString("BNCS [%1:%2]: Connected!").arg(bncs->peerAddress().toString()).arg(bncsPort));
     emitEvent("connected");
-    loginStarted();
 
     QByteArrayBuilder b;
     b.insertByte(1);
     bncs->write(b);
     bncs->waitForBytesWritten();
 
+    startAuthentification();
+}
+
+void Client::startAuthentification() {
+    loginStarted();
     BNCSPacket* packet = clientProtocol->Serialize_SID_AUTH_INFO();
     send(packet);
 
@@ -275,13 +293,22 @@ void Client::bncsReadyRead(){
 void Client::bnlsReady(){
     if (!bnlsSecure) return;
     info(QString("BNLS [%1:%2]: Secure connection established!").arg(bnlsHost).arg(bnlsPort));
+    Packet* packet = BNLSProtocol::serialize(BNLSPacket::BNLS_CHOOSENLSREVISION);
+    packet->setImportant();
+    send(packet);
+
     bncsConnect();
 }
 
 void Client::bnlsConnected(){
     info(QString("BNLS [%1:%2]: Connected!").arg(bnlsHost).arg(bnlsPort));
-    if (!bnlsSecure)
+    if (!bnlsSecure){
+        Packet* packet = BNLSProtocol::serialize(BNLSPacket::BNLS_CHOOSENLSREVISION);
+        packet->setImportant();
+        send(packet);
+
         bncsConnect();
+    }
 }
 
 void Client::bnlsDisconnected(){
@@ -506,10 +533,10 @@ void Client::Recv_SID_CLANINFO(QByteArrayBuilder b){
 }
 
 void Client::Recv_BNLS_CHOOSENLSREVISION(QByteArrayBuilder b){
-    QVariantHash data = clientProtocol->Deserialize_BNLS_CHOOSENLSREVISION(b);
+    QVariantHash* data = BNLSProtocol::deserialize(BNLSPacket::BNLS_CHOOSENLSREVISION, b);
     b.reset();
 
-    uint success = data.value("success").toUInt();
+    uint success = data->value("success").toUInt();
 
     if (success == 1) return;
     error("The BNLS server couldn't set the NLS revision (error code: " + QString::number(success) + ").");
@@ -518,11 +545,11 @@ void Client::Recv_BNLS_CHOOSENLSREVISION(QByteArrayBuilder b){
 }
 
 void Client::Recv_BNLS_CDKEY_EX(QByteArrayBuilder b){
-    QVariantHash data = clientProtocol->Deserialize_BNLS_CDKEY_EX(b);
+    QVariantHash* data = BNLSProtocol::deserialize(BNLSPacket::BNLS_CDKEY_EX, b);
     //qDebug() << data;
 
-    uint keyCount = data.value("scount").toUInt();
-    if (keyCount != data.value("rcount").toUInt()){
+    uint keyCount = data->value("scount").toUInt();
+    if (keyCount != data->value("rcount").toUInt()){
         error("The BNLS server could not solve the provided CD-Keys, make sure they are correct.");
         disconnectClient();
     }
@@ -530,8 +557,8 @@ void Client::Recv_BNLS_CDKEY_EX(QByteArrayBuilder b){
     QByteArray keyData;
 
     for(uint i = 0; i < keyCount; i++){
-        mClientToken = data.value("clientkey" + QString::number(i)).toUInt();
-        keyData.append(data.value("keydata" + QString::number(i)).toByteArray());
+        mClientToken = data->value("clientkey" + QString::number(i)).toUInt();
+        keyData.append(data->value("keydata" + QString::number(i)).toByteArray());
     }
 
     BNCSPacket* packet = clientProtocol
@@ -546,29 +573,31 @@ void Client::Recv_BNLS_CDKEY_EX(QByteArrayBuilder b){
 }
 
 void Client::Recv_BNLS_VERSIONCHECKEX2(QByteArrayBuilder b){
-    QVariantHash data = clientProtocol->Deserialize_BNLS_VERSIONCHECKEX2(b);
+    QVariantHash* data = BNLSProtocol::deserialize(BNLSPacket::BNLS_VERSIONCHECKEX2, b);
     //qDebug() << data;
 
-    mVersionHash = data.value("checksum").toUInt();
-    mCheckString = data.value("checkstring").toString();
-    mVersionCode = data.value("versioncode").toUInt();
+    mVersionHash = data->value("checksum").toUInt();
+    mCheckString = data->value("checkstring").toString();
+    mVersionCode = data->value("versioncode").toUInt();
 
     QStringList keys;
     keys << mKey;
     if (mExpansion) keys << mKeyEx;
 
-    BNLSPacket* p = clientProtocol
-            ->Serialize_BNLS_CDKEY_EX(keys, mServerToken);
+    QVariantHash out;
+    out.insert("keys", keys);
+    out.insert("servertoken", mServerToken);
 
+    Packet* p = BNLSProtocol::serialize(BNLSPacket::BNLS_CDKEY_EX, out);
     send(p);
 }
 
 void Client::Recv_BNLS_LOGONCHALLENGE(QByteArrayBuilder b){
-    QVariantHash data = clientProtocol->Deserialize_BNLS_LOGONCHALLENGE(b);
+    QVariantHash* data = BNLSProtocol::deserialize(BNLSPacket::BNLS_LOGONCHALLENGE, b);
 
     //qDebug() << data;
 
-    QByteArray clientKey = data.value("clientkey").toByteArray();
+    QByteArray clientKey = data->value("clientkey").toByteArray();
 
     BNCSPacket* p = clientProtocol
             ->Serialize_SID_ACCOUNTLOGON(clientKey, mUsername);
@@ -576,11 +605,11 @@ void Client::Recv_BNLS_LOGONCHALLENGE(QByteArrayBuilder b){
 }
 
 void Client::Recv_BNLS_LOGONPROOF(QByteArrayBuilder b){
-    QVariantHash data = clientProtocol->Deserialize_BNLS_LOGONPROOF(b);
+    QVariantHash* data = BNLSProtocol::deserialize((uint) BNLSPacket::BNLS_LOGONPROOF, b);
 
     //qDebug() << data;
 
-    QByteArray passwordProof = data.value("passwordproof").toByteArray();
+    QByteArray passwordProof = data->value("passwordproof").toByteArray();
 
     BNCSPacket* p = clientProtocol
             ->Serialize_SID_ACCOUNTLOGINPROOF(passwordProof);
@@ -602,15 +631,16 @@ void Client::Recv_SID_PING(QByteArrayBuilder b){
 
 void Client::Recv_SID_AUTH_INFO(QByteArrayBuilder b){
     QVariantHash data = clientProtocol->Deserialize_SID_AUTH_INFO(b);
-    //qDebug() << data;
 
     mServerToken = data.value("servertoken").toUInt();
 
-    BNLSPacket* p = clientProtocol
-            ->Serialize_BNLS_VERSIONCHECKEX2(0x08, data.value("filetime").toByteArray(),
-                                             data.value("filename").toString(),
-                                             data.value("valuestring").toString());
+    QVariantHash out;
+    out.insert("product", 0x08);
+    out.insert("file_time", data.value("filetime").toByteArray());
+    out.insert("file_name", data.value("filename").toString());
+    out.insert("value_string", data.value("valuestring").toString());
 
+    Packet* p = BNLSProtocol::serialize(BNLSPacket::BNLS_VERSIONCHECKEX2, out);
     send(p);
 }
 
@@ -628,22 +658,21 @@ void Client::Recv_SID_AUTH_CHECK(QByteArrayBuilder b){
     }
     info("CD-Keys accepted!");
 
-    BNLSPacket* p = clientProtocol
-            ->Serialize_BNLS_LOGONCHALLENGE(mUsername, mPassword);
+    QVariantHash out;
+    out.insert("username", mUsername);
+    out.insert("password", mPassword);
+    Packet* p = BNLSProtocol::serialize(BNLSPacket::BNLS_LOGONCHALLENGE, out);
     send(p);
 }
 
 void Client::Recv_SID_ACCOUNT_LOGON(QByteArrayBuilder b){
     QVariantHash data = clientProtocol->Deserialize_SID_ACCOUNT_LOGON(b);
 
-    //qDebug() << data;
+    QVariantHash out;
+    out.insert("salt", data.value("salt").toByteArray());
+    out.insert("server_key", data.value("key").toByteArray());
 
-    QByteArray salt = data.value("salt").toByteArray();
-    QByteArray key = data.value("key").toByteArray();
-
-    BNLSPacket* p = clientProtocol
-            ->Serialize_BNLS_LOGONPROOF(salt, key);
-
+    Packet* p = BNLSProtocol::serialize(BNLSPacket::BNLS_LOGONPROOF, out);
     send(p);
 }
 
@@ -1003,12 +1032,14 @@ void Client::incomingPacket(Packet *p){
     QVariantHash data;
     data.insert("packet", QVariant::fromValue<Packet*>(p));
     emitEvent("incoming_data", data);
+    qDebug() << p;
 }
 
 void Client::outgoingPacket(Packet *p){
     QVariantHash data;
     data.insert("packet", QVariant::fromValue<Packet*>(p));
     emitEvent("outgoing_data", data);
+    qDebug() << p;
 }
 
 void Client::channelJoin(QString channel){

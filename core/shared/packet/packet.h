@@ -3,6 +3,7 @@
 
 #include <QByteArray>
 #include <QDateTime>
+#include <QMetaEnum>
 #include "shared/qbytearraybuilder.h"
 
 class Packet : public QObject {
@@ -39,6 +40,13 @@ public:
     void setImportance(uint i);
     inline void setImportant(){
         setImportance(100);
+    }
+
+    template<class PROTOCOL>
+    static QString packetIdToString(uint packet) {
+        QMetaObject metaObject = PROTOCOL::staticMetaObject;
+        QMetaEnum metaEnum = metaObject.enumerator(metaObject.indexOfEnumerator("PacketId"));
+        return QString(metaEnum.valueToKey(packet));
     }
 
 private:

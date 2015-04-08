@@ -1,37 +1,39 @@
 #ifndef CLIENTPROTOCOL_H
 #define CLIENTPROTOCOL_H
 
-#include <QTcpSocket>
-#include <QSslSocket>
-#include <QSslCipher>
-#include <QCryptographicHash>
-#include "shared/packet/bncspacket.h"
-#include "shared/packet/bnlspacket.h"
-#include "shared/functions.h"
+#include <client/protocol.h>
+#include <shared/packet/bncspacket.h>
 
 class Game;
 
-class ClientProtocol {
+class ClientProtocol : public Protocol
+{
+    Q_OBJECT
 public:
     enum Product {
         PRODUCT_WAR3,
         PRODUCT_W3XP
     };
 
-    // BNLS Packet handling
-    BNLSPacket* Serialize_BNLS_CHOOSENLSREVISION();
-    BNLSPacket* Serialize_BNLS_LOGONPROOF(const QByteArray salt, const QByteArray serverKey);
-    BNLSPacket* Serialize_BNLS_VERSIONCHECKEX2(const dword product, const QByteArray fileTime,
-                                               const QString fileName, const QString valueString);
-    BNLSPacket* Serialize_BNLS_CDKEY_EX(const QStringList keys, quint32 serverToken);
-    BNLSPacket* Serialize_BNLS_LOGONCHALLENGE(const QString username, const QString password);
-    QVariantHash Deserialize_BNLS_CHOOSENLSREVISION(QByteArrayBuilder b);
-    QVariantHash Deserialize_BNLS_CDKEY_EX(QByteArrayBuilder b);
-    QVariantHash Deserialize_BNLS_VERSIONCHECKEX2(QByteArrayBuilder b);
-    QVariantHash Deserialize_BNLS_LOGONCHALLENGE(QByteArrayBuilder b);
-    QVariantHash Deserialize_BNLS_LOGONPROOF(QByteArrayBuilder b);
+    static ClientProtocol* instance() {
+        if (_instance == 0) {
+            _instance = new ClientProtocol();
+        }
+        return _instance;
+    }
 
-    // BNCS Packet handling
+    static Packet* serialize(uint p, QString s, QVariant d) {
+        return instance()->_serialize<ClientProtocol, BNCSPacket>(p, s, d);
+    }
+
+    static Packet* serialize(uint p, QVariantHash data = QVariantHash()) {
+        return instance()->_serialize<ClientProtocol, BNCSPacket>(p, data);
+    }
+
+    static QVariantHash* deserialize(uint p, QByteArrayBuilder data) {
+        return instance()->_deserialize<ClientProtocol, BNCSPacket>(p, data);
+    }
+
     BNCSPacket* Serialize_SID_AUTH_INFO();
     BNCSPacket* Serialize_SID_AUTH_CHECK(quint32 clientToken, quint32 versionCode, quint32 versionHash, int keyCount, const QByteArray keyData, const QString checkString, const QString username);
     BNCSPacket* Serialize_SID_ACCOUNTLOGON(const QByteArray clientKey, const QString username);
@@ -61,6 +63,7 @@ public:
     QVariantHash Deserialize_SID_FRIENDSLIST(QByteArrayBuilder in);
 private:
 
+    static ClientProtocol* _instance;
 };
 
 #endif // CLIENTPROTOCOL_H

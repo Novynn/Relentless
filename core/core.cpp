@@ -31,10 +31,10 @@ Core::Core(QObject *parent) :
     PluginCore* pluginCore = new PluginCore(this);
     pluginCore->loadPlugins(QDir::currentPath().append("/plugins/"));
 
-    //clientCore->load();
-    //gameCore->load();
+    clientCore->load();
+    gameCore->load();
 
-    //clientCore->loadClients();
+    clientCore->loadClients();
 
     //clientCore->sendConnectSignal();
 }

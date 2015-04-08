@@ -11,7 +11,7 @@ GameCore::GameCore(Core *parent) :
 void GameCore::load(){
     core()->settings()->beginGroup("Games");
     if (core()->settings()->value("listen", true).toBool())
-        listen(core()->settings()->value("start", 6112).toInt(),
+        listen(core()->settings()->value("start", 6113).toInt(),
                core()->settings()->value("end", 6119).toInt());
     core()->settings()->endGroup();
     print("GameCore initialized!");
@@ -52,7 +52,7 @@ bool GameCore::listen(int fromPort, int toPort){
         connect(listener, SIGNAL(newConnection()), this, SLOT(newConnection()));
         return true;
     }
-    error("Could not listen on ports [6112-6119]...");
+    error("Could not listen on ports [6113-6119]...");
     error(" > Additional Info: [" + listener->errorString() + "]");
     return false;
 }
