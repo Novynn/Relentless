@@ -9,6 +9,7 @@
 #include <QQueue>
 #include <QMetaObject>
 #include <QMetaEnum>
+#include <QTimer>
 
 PluginCore::PluginCore(Core *parent) : CoreObject(parent){
     watcher = new QFileSystemWatcher(this);
@@ -24,23 +25,26 @@ void PluginCore::pluginChanged(const QString &filePath) {
     if (fileInfo.isDir()) {
         QDir path(filePath);
         print("Loading new plugins from [" + path.absolutePath() + "]");
-        qDebug() << path.entryList();
 
-        for( QString fileName : path.entryList({"*.dll"}, QDir::Files)) {
-            if (pluginPaths.contains(fileName)) continue;
-            print("Found new: " + fileName);
-            loadPlugin(path, fileName);
-        }
-    }
-    else {
-        QDir path = fileInfo.absoluteDir();
-        if (fileInfo.suffix() != "dll") return;
-        QString fileName = fileInfo.fileName();
-        Plugin* plugin = pluginPaths.value(fileName, 0);
-        if (plugin) {
-            printMessage(plugin, "This plugin was updated. Now reloading...");
-            unloadPlugin(plugin);
-            loadPlugin(path, fileName);
+        for(QString fileName : path.entryList({"*.dll"}, QDir::Files)) {
+            if (knownPlugins.keys().contains(fileName)){
+                QFileInfo newFileInfo(path.absoluteFilePath(fileName));
+                print("We've seen " + fileName + " before...");
+                if (newFileInfo.size() == 0) {
+                    info("\tIt's filesize is 0 bytes, will wait before attempting to load.");
+                    continue;
+                }
+                QDateTime knownModified = knownPlugins.value(fileName);
+                QDateTime newModified = newFileInfo.lastModified();
+                if (knownModified < newModified) {
+                    info("Reloading " + fileName + "...");
+                    knownPlugins.remove(fileName);
+                    QTimer::singleShot(1000, [this, path, fileName]() {loadPlugin(path, fileName);});
+                }
+                else {
+                    print("File is old, or the same.");
+                }
+            }
         }
     }
 }
@@ -56,19 +60,29 @@ void PluginCore::printMessage(Plugin *plugin, QString message, MessageType type)
 }
 
 bool PluginCore::loadPlugin(QDir path, QString fileName) {
-    QPluginLoader* loader = new QPluginLoader( path.absoluteFilePath( fileName ) );
+    QString file = path.absoluteFilePath(fileName);
+    QFileInfo fileInfo(file);
+
+    // Load
+    QPluginLoader* loader = new QPluginLoader(file);
     QObject *object = loader->instance();
-    if(object){
-        if (loadPlugin(object, loader->metaData())){
-            Plugin* plugin = qobject_cast<Plugin*>(object);
-            //watcher->addPath(path.absoluteFilePath(fileName));
-            pluginPaths.insert(fileName, plugin);
-            pluginLoaders.insert(plugin, loader);
-            return true;
+    if(!object || !loadPlugin(object, loader->metaData())) {
+        error("Failed to load: " + loader->fileName());
+        if (object == 0) {
+            error("\tCould not get plugin instance.");
         }
+        else {
+            error("\tCould not load plugin.");
+        }
+        loader->deleteLater();
+        return false;
     }
-    loader->deleteLater();
-    return false;
+
+    Plugin* plugin = qobject_cast<Plugin*>(object);
+
+    knownPlugins.insert(fileName, fileInfo.lastModified());
+    pluginLoaders.insert(plugin, loader);
+    return true;
 }
 
 bool PluginCore::loadPlugin(QObject *object, QJsonObject pluginData){
@@ -82,10 +96,8 @@ bool PluginCore::loadPlugin(QObject *object, QJsonObject pluginData){
             int index = metaObject->indexOfProperty("plugins");
             if (index != -1) {
                 QMetaProperty property = metaObject->property(index);
-                qDebug() << "has plugins property: " << property.typeName();
-
                 if (property.isWritable()) {
-                    qDebug() << "writing to plugins: " << property.write(plugin, QVariant::fromValue<PluginHash>(plugins));
+                    property.write(plugin, QVariant::fromValue<PluginHash>(plugins));
                 }
             }
 
@@ -93,7 +105,7 @@ bool PluginCore::loadPlugin(QObject *object, QJsonObject pluginData){
             QJsonObject metaData = pluginData.value("MetaData").toObject();
             // Check if plugin wants threading or not:
             bool threading = metaData.value("threading").toBool(true);
-            bool silent = metaData.value("silent").toBool(false);
+            bool silent = false; //metaData.value("silent").toBool(false);
             if (!threading){
                 if (!silent) {
                     quint64 start = core()->uptime();
@@ -151,6 +163,7 @@ void PluginCore::loadPlugins(QDir path){
 }
 
 void PluginCore::unloadPlugin(Plugin* plugin) {
+    // Send an unload request
     QMetaObject::invokeMethod(plugin, "unload");
 }
 
@@ -158,15 +171,13 @@ void PluginCore::pluginUnloading(bool silently){
     Plugin* plugin = qobject_cast<Plugin*>(sender());
     if (!plugin) return;
 
+    // Remove the Plugin from our system
     plugins.remove(plugins.key(plugin));
-    QString path = pluginPaths.key(plugin);
-    pluginPaths.remove(path);
-    watcher->removePath(path);
-
     if (!silently){
         printMessage(plugin, "Unloaded.", MessageType::Warning);
     }
 
+    // Disconnect from the Plugin
     plugin->disconnect();
     QThread* thread = plugin->thread();
     if (thread != QThread::currentThread()){
@@ -178,9 +189,10 @@ void PluginCore::pluginUnloading(bool silently){
         }
     }
 
+    // Remove the PluginLoader
     QPluginLoader* loader = pluginLoaders.value(plugin, 0);
-    pluginLoaders.remove(plugin);
     if (loader) {
+        pluginLoaders.remove(plugin);
         loader->unload();
         loader->deleteLater();
     }
@@ -193,9 +205,6 @@ void PluginCore::linkPlugin(Plugin* plugin) {
             plugin, SLOT(clientEvent(QString,QString,QVariantHash)));
     connect(plugin, SIGNAL(clientRequest(QString,QString,QVariantHash)),
             clientCore, SLOT(clientRequest(QString,QString,QVariantHash)));
-
-//    qRegisterMetaType<MessageOrigin>("MessageOrigin");
-//    connect(core(), SIGNAL(consoleMessage(QString, MessageOrigin)), plugin, SLOT(consoleMessage(QString, MessageOrigin)));
 
     qRegisterMetaType<MessageType>("MessageType");
     connect(plugin, &Plugin::message, this, [this, plugin] (QString message, MessageType type){

@@ -34,8 +34,9 @@ public:
 private:
     bool loadPlugin(QObject *object, QJsonObject pluginData);
     PluginHash plugins;
-    QHash<QString, Plugin*> pluginPaths;
     QHash<Plugin*, QPluginLoader*> pluginLoaders;
+    // Path, LastModified
+    QHash<QString, QDateTime> knownPlugins;
 
     QFileSystemWatcher* watcher;
 
