@@ -62,6 +62,10 @@ public:
     void bncsConnect();
     void handlePackets();
 
+    QSettings* getSettings() {
+        return settings;
+    }
+
     void print(QString message);
     void info(QString message);
     void warning(QString message);

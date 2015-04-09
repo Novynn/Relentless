@@ -312,8 +312,12 @@ bool ClientCore::newClient(const QString configFile){
     }
     clients.insert(client->getIdentifier(), client);
     info("Client created! (@" + QString::number(core()->uptime()) + "ms)");
+    client->getSettings()->sync();
 
-    emitEvent(client, "created");
+    QVariantHash data;
+    data.insert("settings", QVariant::fromValue<QSettings*>(client->getSettings()));
+
+    emitEvent(client, "created", data);
 
     return true;
 }
