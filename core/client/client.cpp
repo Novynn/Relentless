@@ -1,5 +1,8 @@
 #include "bnlsprotocol.h"
 #include "client.h"
+#include "client/bncskeyhandler.h"
+
+#define LOGIN_SELF false
 
 Client::Client(const QString identifier, ClientCore *parent, QSettings *set)
     : QObject(parent), mIdentifier(identifier), clientCore(parent), settings(set){
@@ -185,6 +188,8 @@ bool Client::load(){
         return false;
     }
 
+    loginHandler = new BNCSNLSHandler(mUsername, mPassword);
+
     queueTimer->stop();
     queueTimer->start();
 
@@ -277,17 +282,20 @@ void Client::bncsReadyRead(){
         if (block.peekByte() != (byte) Packet::PROTOCOL_BNCS)
             break;
 
-        int size = block.peekWord(2);
         int id = block.peekByte(1);
+        int size = block.peekWord(2);
 
         if (bncs->bytesAvailable() < size) {
+            // Wait until we have enough
             break;
         }
 
         QByteArray data = bncs->read(size);
-        incomingDataQueue.append(new BNCSPacket((BNCSPacket::PacketId) id, data, Packet::FROM_SERVER));
+        Q_ASSERT_X(data.size() == size, "bncsReadyRead", QString("read data of size %1, expected %2").arg(data.size()).arg(size).toLatin1().constData());
+        BNCSPacket* packet = new BNCSPacket((BNCSPacket::PacketId) id, data, Packet::FROM_SERVER);
+        incomingDataQueue.append(packet);
     }
-    handlePackets();
+    handleIncomingPackets();
 }
 
 void Client::bnlsReady(){
@@ -333,35 +341,10 @@ void Client::bnlsReadyRead(){
 
         incomingDataQueue.append(new BNLSPacket((BNLSPacket::PacketId) id, data, Packet::FROM_SERVER));
     }
-    handlePackets();
+    handleIncomingPackets();
 }
 
-int Client::getProjectedDelay(int size){
-    int byteCost = queueCostPerByte;
-    int iQueueCredits = queueCredits;
-
-    qint64 currTime = QDateTime::currentMSecsSinceEpoch();
-    if (iQueueCredits < queueMaxCredits){ // Adjust credits up
-        iQueueCredits += ((currTime - queueTimeLastSent) / queueCreditRate);
-        if (queueCredits > queueMaxCredits)
-            iQueueCredits = queueMaxCredits;
-    }
-
-    int thisByteDelay = byteCost;
-    if (size > queueThreshholdBytes)
-        thisByteDelay = queueCostPerByteOverThreshhold;
-    int thisPacketCost = queueCostPerPacket + (thisByteDelay * size);
-
-    int requiredDelay = 0;
-    if (iQueueCredits < 0)
-        requiredDelay = (-1 * iQueueCredits) * queueCreditRate;
-    if (thisPacketCost > iQueueCredits)
-        requiredDelay = (-1 * (iQueueCredits - thisPacketCost)) * thisByteDelay;
-
-    return requiredDelay;
-}
-
-int Client::getDelay(int size){
+int Client::getDelay(int size, bool free){
     int byteCost = queueCostPerByte;
 
     qint64 currTime = QDateTime::currentMSecsSinceEpoch();
@@ -383,12 +366,14 @@ int Client::getDelay(int size){
     if (thisPacketCost > queueCredits)
         requiredDelay = (-1 * (queueCredits - thisPacketCost)) * thisByteDelay;
 
-    queueCredits -= thisPacketCost;
+    if (!free) {
+        queueCredits -= thisPacketCost;
+    }
     return requiredDelay;
 }
 
 void Client::send(Packet* p){
-    if (status() == CLIENT_AUTHENTICATING) p->setImportance(100);
+    if (status() == CLIENT_AUTHENTICATING && p->importance() != 0) p->setImportance(100);
     if (p->importance() == 100){
         sendImmediately(p);
     }
@@ -403,103 +388,127 @@ void Client::send(Packet* p){
 bool Client::sendImmediately(Packet *p){
     outgoingPacket(p);
 
+    if (p->importance() == 0) { // Special Case
+        info("Packet " + p->packetIdString() + " was destroyed.");
+        delete p;
+        p = 0;
+        return true;
+    }
+
     QAbstractSocket* socket = 0;
     if (p->protocol() == Packet::PROTOCOL_BNCS) socket = bncs;
     else if (p->protocol() == Packet::PROTOCOL_BNLS) socket = bnls;
-    if (socket == 0) return false;
+
+    if (socket == 0) {
+        info("Packet " + p->packetIdString() + " had no valid sockets to be sent to.");
+        delete p;
+        p = 0;
+        return true;
+    }
+
     QByteArray data = QByteArray(p->toPackedData());
+    socket->write(data);
     delete p;
     p = 0;
-    socket->write(data);
     return true;
 }
 
 void Client::readySend(){
-    for (int i = 0; i < outgoingDataQueue.count(); i++){
-        Packet* p = outgoingDataQueue.at(i);
-        if (QDateTime::currentMSecsSinceEpoch() < p->activeTime()) continue;
-        if (sendImmediately(p)) outgoingDataQueue.removeOne(p);
+    handleOutgoingPackets();
+}
+
+void Client::handleIncomingPacket(Packet* p) {
+    incomingPacket(p);
+
+    if (p->protocol() == Packet::PROTOCOL_BNCS){
+        switch(p->packetId()){
+        case BNCSPacket::SID_NULL:
+            // Just keeping the connection alive
+            break;
+        case BNCSPacket::SID_CHATEVENT:
+            Recv_SID_CHATEVENT(p->data());
+            break;
+        case BNCSPacket::SID_PING:
+            Recv_SID_PING(p->data());
+            break;
+        case BNCSPacket::SID_AUTH_INFO:
+            Recv_SID_AUTH_INFO(p->data());
+            break;
+        case BNCSPacket::SID_AUTH_CHECK:
+            Recv_SID_AUTH_CHECK(p->data());
+            break;
+        case BNCSPacket::SID_AUTH_ACCOUNTLOGON:
+            Recv_SID_ACCOUNT_LOGON(p->data());
+            break;
+        case BNCSPacket::SID_AUTH_ACCOUNTLOGONPROOF:
+            Recv_SID_ACCOUNTLOGONPROOF(p->data());
+            break;
+        case BNCSPacket::SID_ENTERCHAT:
+            Recv_SID_ENTERCHAT(p->data());
+            break;
+        case BNCSPacket::SID_STARTADVEX3:
+            Recv_SID_STARTADVEX3(p->data());
+            break;
+        case BNCSPacket::SID_GETADVLISTEX:
+            Recv_SID_GETADVLISTEX(p->data());
+            break;
+        case BNCSPacket::SID_CLANINFO:
+            Recv_SID_CLANINFO(p->data());
+            break;
+        case BNCSPacket::SID_FRIENDSLIST:
+            Recv_SID_FRIENDSLIST(p->data());
+            break;
+        case BNCSPacket::SID_REQUIREDWORK:
+        case BNCSPacket::SID_EXTRAWORK:// Extra Work
+            // We can safely ignore this.
+            break;
+        default:
+            warning("Unknown Packet!");
+            qDebug() << p;
+            break;
+        }
+    }
+    else if (p->protocol() == Packet::PROTOCOL_BNLS){ // Made up BNLS Protocol Header..
+        switch(p->packetId()){
+        case BNLSPacket::BNLS_CDKEY_EX:
+            Recv_BNLS_CDKEY_EX(p->data());
+            break;
+        case BNLSPacket::BNLS_CHOOSENLSREVISION:
+            Recv_BNLS_CHOOSENLSREVISION(p->data());
+            break;
+        case BNLSPacket::BNLS_LOGONCHALLENGE:
+            Recv_BNLS_LOGONCHALLENGE(p->data());
+            break;
+        case BNLSPacket::BNLS_LOGONPROOF:
+            Recv_BNLS_LOGONPROOF(p->data());
+            break;
+        case BNLSPacket::BNLS_VERSIONCHECKEX2:
+            Recv_BNLS_VERSIONCHECKEX2(p->data());
+            break;
+        default:
+            warning("Unknown Packet!");
+            qDebug() << p;
+            break;
+        }
     }
 }
 
-void Client::handlePackets(){
+void Client::handleIncomingPackets(){
     while (!incomingDataQueue.isEmpty()){
         Packet* p = incomingDataQueue.dequeue();
-        incomingPacket(p);
-
-        if (p->protocol() == Packet::PROTOCOL_BNCS){
-            switch(p->packetId()){
-            case BNCSPacket::SID_NULL:
-                // Just keeping the connection alive
-                break;
-            case BNCSPacket::SID_CHATEVENT:
-                Recv_SID_CHATEVENT(p->data());
-                break;
-            case BNCSPacket::SID_PING:
-                Recv_SID_PING(p->data());
-                break;
-            case BNCSPacket::SID_AUTH_INFO:
-                Recv_SID_AUTH_INFO(p->data());
-                break;
-            case BNCSPacket::SID_AUTH_CHECK:
-                Recv_SID_AUTH_CHECK(p->data());
-                break;
-            case BNCSPacket::SID_AUTH_ACCOUNTLOGON:
-                Recv_SID_ACCOUNT_LOGON(p->data());
-                break;
-            case BNCSPacket::SID_AUTH_ACCOUNTLOGONPROOF:
-                Recv_SID_ACCOUNTLOGONPROOF(p->data());
-                break;
-            case BNCSPacket::SID_ENTERCHAT:
-                Recv_SID_ENTERCHAT(p->data());
-                break;
-            case BNCSPacket::SID_STARTADVEX3:
-                Recv_SID_STARTADVEX3(p->data());
-                break;
-            case BNCSPacket::SID_GETADVLISTEX:
-                Recv_SID_GETADVLISTEX(p->data());
-                break;
-            case BNCSPacket::SID_CLANINFO:
-                Recv_SID_CLANINFO(p->data());
-                break;
-            case BNCSPacket::SID_FRIENDSLIST:
-                Recv_SID_FRIENDSLIST(p->data());
-                break;
-            case BNCSPacket::SID_REQUIREDWORK:
-            case BNCSPacket::SID_EXTRAWORK:// Extra Work
-                // We can safely ignore this.
-                break;
-            default:
-                warning("Unknown Packet!");
-                qDebug() << p;
-                break;
-            }
-        }
-        else if (p->protocol() == Packet::PROTOCOL_BNLS){ // Made up BNLS Protocol Header..
-            switch(p->packetId()){
-            case BNLSPacket::BNLS_CDKEY_EX:
-                Recv_BNLS_CDKEY_EX(p->data());
-                break;
-            case BNLSPacket::BNLS_CHOOSENLSREVISION:
-                Recv_BNLS_CHOOSENLSREVISION(p->data());
-                break;
-            case BNLSPacket::BNLS_LOGONCHALLENGE:
-                Recv_BNLS_LOGONCHALLENGE(p->data());
-                break;
-            case BNLSPacket::BNLS_LOGONPROOF:
-                Recv_BNLS_LOGONPROOF(p->data());
-                break;
-            case BNLSPacket::BNLS_VERSIONCHECKEX2:
-                Recv_BNLS_VERSIONCHECKEX2(p->data());
-                break;
-            default:
-                warning("Unknown Packet!");
-                qDebug() << p;
-                break;
-            }
-        }
-
+        handleIncomingPacket(p);
         delete p;
+        p = 0;
+    }
+}
+
+void Client::handleOutgoingPackets()
+{
+    for (int i = 0; i < outgoingDataQueue.count(); i++){
+        Packet* p = outgoingDataQueue.at(i);
+        if (QDateTime::currentMSecsSinceEpoch() < p->activeTime()) continue;
+        p = outgoingDataQueue.takeAt(i);
+        sendImmediately(p);
     }
 }
 
@@ -558,7 +567,8 @@ void Client::Recv_BNLS_CDKEY_EX(QByteArrayBuilder b){
 
     for(uint i = 0; i < keyCount; i++){
         mClientToken = data->value("clientkey" + QString::number(i)).toUInt();
-        keyData.append(data->value("keydata" + QString::number(i)).toByteArray());
+        QByteArrayBuilder d = data->value("keydata" + QString::number(i)).toByteArray();
+        keyData.append(d);
     }
 
     BNCSPacket* packet = clientProtocol
@@ -576,20 +586,82 @@ void Client::Recv_BNLS_VERSIONCHECKEX2(QByteArrayBuilder b){
     QVariantHash* data = BNLSProtocol::deserialize(BNLSPacket::BNLS_VERSIONCHECKEX2, b);
     //qDebug() << data;
 
+    if (!data->value("success").toBool()) {
+        error("BNLS server could not parse the version check request.");
+        disconnectClient();
+        return;
+    }
+
     mVersionHash = data->value("checksum").toUInt();
     mCheckString = data->value("checkstring").toString();
     mVersionCode = data->value("versioncode").toUInt();
 
-    QStringList keys;
-    keys << mKey;
-    if (mExpansion) keys << mKeyEx;
+    if (false) {
 
-    QVariantHash out;
-    out.insert("keys", keys);
-    out.insert("servertoken", mServerToken);
+        QStringList keys;
+        keys << mKey;
+        if (mExpansion) keys << mKeyEx;
 
-    Packet* p = BNLSProtocol::serialize(BNLSPacket::BNLS_CDKEY_EX, out);
-    send(p);
+        QVariantHash out;
+        out.insert("keys", keys);
+        out.insert("servertoken", mServerToken);
+
+        Packet* p = BNLSProtocol::serialize(BNLSPacket::BNLS_CDKEY_EX, out);
+        send(p);
+    }
+    else {
+        mClientToken = qrand() % 255; // We generate it now!
+
+        QByteArrayBuilder keyHashData;
+        quint8 product = 0;
+        quint32 pub = 0;
+        {
+            QVariantHash inhouseKeyData = BNCSKeyHandler::DecodeKey(mKey);
+
+            product = inhouseKeyData.value("product", 0).toUInt();
+            pub = inhouseKeyData.value("public", 0).toUInt();
+
+            QByteArray priv = inhouseKeyData.value("private", QByteArray()).toByteArray();
+            QVariantHash* inhouseHashData = BNCSKeyHandler::HashKey(product, pub, priv, mClientToken, mServerToken);
+            keyHashData = inhouseHashData->value("hash", QByteArray()).toByteArray();
+            delete inhouseHashData;
+        }
+        QByteArrayBuilder inhouseFinalData;
+        inhouseFinalData.insertDWord(mKey.length());
+        inhouseFinalData.insertDWord(product);
+        inhouseFinalData.insertDWord(pub);
+        inhouseFinalData.insertDWord(0);
+        inhouseFinalData.insertVoid(keyHashData);
+
+        if (mExpansion) {
+            {
+                QVariantHash inhouseKeyData = BNCSKeyHandler::DecodeKey(mKeyEx);
+
+                product = inhouseKeyData.value("product", 0).toUInt();
+                pub = inhouseKeyData.value("public", 0).toUInt();
+
+                QByteArray priv = inhouseKeyData.value("private", QByteArray()).toByteArray();
+                QVariantHash* inhouseHashData = BNCSKeyHandler::HashKey(product, pub, priv, mClientToken, mServerToken);
+                keyHashData = inhouseHashData->value("hash", QByteArray()).toByteArray();
+                delete inhouseHashData;
+            }
+            inhouseFinalData.insertDWord(mKeyEx.length());
+            inhouseFinalData.insertDWord(product);
+            inhouseFinalData.insertDWord(pub);
+            inhouseFinalData.insertDWord(0);
+            inhouseFinalData.insertVoid(keyHashData);
+        }
+
+        BNCSPacket* p = clientProtocol
+                ->Serialize_SID_AUTH_CHECK(mClientToken,
+                                mVersionCode,
+                                mVersionHash,
+                                mExpansion ? 2 : 1, inhouseFinalData,
+                                mCheckString,
+                                mUsername);
+
+        send(p);
+    }
 }
 
 void Client::Recv_BNLS_LOGONCHALLENGE(QByteArrayBuilder b){
@@ -598,6 +670,17 @@ void Client::Recv_BNLS_LOGONCHALLENGE(QByteArrayBuilder b){
     //qDebug() << data;
 
     QByteArray clientKey = data->value("clientkey").toByteArray();
+
+    //loginHandler->setClientKey(clientKey);
+
+    if (data->contains("private")) {
+        QByteArray privateKey = data->value("private").toByteArray();
+        loginHandler->setClientKey(clientKey, privateKey);
+    }
+
+    if (LOGIN_SELF) {
+        clientKey = loginHandler->generateClientKey();
+    }
 
     BNCSPacket* p = clientProtocol
             ->Serialize_SID_ACCOUNTLOGON(clientKey, mUsername);
@@ -610,6 +693,18 @@ void Client::Recv_BNLS_LOGONPROOF(QByteArrayBuilder b){
     //qDebug() << data;
 
     QByteArray passwordProof = data->value("passwordproof").toByteArray();
+
+    if (true) {
+        info("Calculating password proof...");
+        QByteArray localPasswordProof = loginHandler->calculateProof();
+        info("Calculated!");
+        if (localPasswordProof == passwordProof) {
+            info("Matches!");
+        }
+        else {
+            warning("Match failed! :(");
+        }
+    }
 
     BNCSPacket* p = clientProtocol
             ->Serialize_SID_ACCOUNTLOGINPROOF(passwordProof);
@@ -669,8 +764,13 @@ void Client::Recv_SID_ACCOUNT_LOGON(QByteArrayBuilder b){
     QVariantHash data = clientProtocol->Deserialize_SID_ACCOUNT_LOGON(b);
 
     QVariantHash out;
-    out.insert("salt", data.value("salt").toByteArray());
-    out.insert("server_key", data.value("key").toByteArray());
+    QByteArray salt = data.value("salt").toByteArray();
+    QByteArray key = data.value("key").toByteArray();
+    out.insert("salt", salt);
+    out.insert("server_key", key);
+
+    loginHandler->setSalt(salt);
+    loginHandler->setServerKey(key);
 
     Packet* p = BNLSProtocol::serialize(BNLSPacket::BNLS_LOGONPROOF, out);
     send(p);
@@ -1032,14 +1132,14 @@ void Client::incomingPacket(Packet *p){
     QVariantHash data;
     data.insert("packet", QVariant::fromValue<Packet*>(p));
     emitEvent("incoming_data", data);
-    qDebug() << p;
+    //qDebug() << p;
 }
 
 void Client::outgoingPacket(Packet *p){
     QVariantHash data;
     data.insert("packet", QVariant::fromValue<Packet*>(p));
     emitEvent("outgoing_data", data);
-    qDebug() << p;
+    //qDebug() << p;
 }
 
 void Client::channelJoin(QString channel){

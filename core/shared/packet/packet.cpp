@@ -55,5 +55,5 @@ void Packet::setImportance(uint i){
     mImportance = i;
 }
 
-Packet::Packet(QByteArray data, Packet::Locality from, uint importance, qint64 activeTime)
+Packet::Packet(const QByteArray &data, Packet::Locality from, uint importance, qint64 activeTime)
     : mData(data), mLocality(from), mImportance(importance), mActiveTime(activeTime){}

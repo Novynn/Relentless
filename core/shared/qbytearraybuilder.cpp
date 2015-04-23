@@ -55,6 +55,19 @@ QString QByteArrayBuilder::toReadableString(QByteArray data){
     return s.trimmed();
 }
 
+QString QByteArrayBuilder::toIntegerString(QByteArray data){
+    QString s;
+    QString t;
+    for (int i = 0;i < data.size();i++){
+        t = QString::number((int) data.at(i), 16).right(2);
+        if (t.length() == 1)
+            t = "0" + t;
+        s += t;
+        s += " ";
+    }
+    return s.trimmed();
+}
+
 byte QByteArrayBuilder::getByte(){
     dword b = peekByte();
     if (length() >= 1)

@@ -69,6 +69,7 @@ public:
     int size() const {
         return QByteArray::size() - pointer;
     }
+    static QString toIntegerString(QByteArray data);
 private:
     quint64 pointer = 0;
 };

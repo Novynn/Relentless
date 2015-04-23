@@ -12,6 +12,7 @@
 #include "clientprotocol.h"
 #include "friend.h"
 #include "shared/packet/packet.h"
+#include <client/bncsnlshandler.h>
 
 class ClientCore;
 class ClientProtocol;
@@ -59,8 +60,11 @@ public:
     virtual bool connectClient();
     virtual void disconnectClient();
 
-    void bncsConnect();
-    void handlePackets();
+    virtual void bncsConnect();
+    virtual void handleIncomingPackets();
+    virtual void handleOutgoingPackets();
+
+    BNCSNLSHandler* loginHandler;
 
     QSettings* getSettings() {
         return settings;
@@ -81,7 +85,7 @@ public:
     void Recv_SID_CLANINFO(QByteArrayBuilder b);
     virtual bool validateSettings();
     virtual bool loadSettings();
-private:
+//protected:
     void emitEvent(QString event, QVariantHash data = QVariantHash());
     // BNLS Packet handling
     void Recv_BNLS_CHOOSENLSREVISION(QByteArrayBuilder b);
@@ -104,10 +108,9 @@ private:
     //
     QString mIdentifier;
 
-    void send(Packet* p);
+    virtual void send(Packet* p);
     bool sendImmediately(Packet* p);
-    int getDelay(int size);
-    int getProjectedDelay(int size);
+    virtual int getDelay(int size, bool free=false);
 
     int queueCredits;
     int queueStartingCredits;
@@ -118,7 +121,7 @@ private:
     int queueMaxCredits;
     int queueCreditRate;
     qint64 queueTimeLastSent;
-private:
+
     ClientCore* clientCore;
     ClientProtocol* clientProtocol;
 
@@ -165,9 +168,10 @@ private:
     QList<Friend*> _friends;
     QTimer* _friendsUpdateTimer;
 
+    virtual void handleIncomingPacket(Packet *p);
 public slots:
     void readySend();
-    void bncsConnected();
+    virtual void bncsConnected();
     void bncsDisconnected();
     void bncsReadyRead();
 
@@ -177,8 +181,8 @@ public slots:
     void bnlsReadyRead();
     void bnlsSSLError(const QList<QSslError> &);
 
-    void incomingPacket(Packet*);
-    void outgoingPacket(Packet*);
+    virtual void incomingPacket(Packet*);
+    virtual void outgoingPacket(Packet*);
 
     void channelJoin(QString);
 

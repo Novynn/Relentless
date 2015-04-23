@@ -73,6 +73,9 @@ void BNLSProtocol::deserialize_BNLS_CDKEY_EX(QByteArrayBuilder in, QVariantHash 
 
 void BNLSProtocol::deserialize_BNLS_LOGONCHALLENGE(QByteArrayBuilder in, QVariantHash *out){
     out->insert("clientkey", in.getVoid(32));  // (DWORD)[8] Data for SID_AUTH_ACCOUNTLOGON
+    if (in.size() > 0) {
+        out->insert("private", in.getVoid(32)); // Hacked in (temporarily)
+    }
 }
 
 void BNLSProtocol::deserialize_BNLS_VERSIONCHECKEX2(QByteArrayBuilder in, QVariantHash *out){

@@ -70,7 +70,6 @@ public:
         return out;
     }
 
-private:
     void stripHeader(){
         QByteArrayBuilder content = mData;
         if (content.size() < 3 || content.size() > 65535) {
@@ -90,6 +89,7 @@ private:
         mData = content.getVoid(content.size());
     }
 
+private:
     PacketId mPId;
 };
 

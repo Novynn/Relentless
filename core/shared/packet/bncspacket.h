@@ -172,31 +172,28 @@ public:
         return out;
     }
 
-private:
     void stripHeader(){
-        QByteArrayBuilder content = mData;
+        QByteArrayBuilder content(mData);
         if (content.size() < 4 || content.size() > 65535) {
-            qDebug() << "ERROR: Packet out of range.";
-            return;
+            qDebug() << "BNCSPacket: Packet out of range.";
         }
-        byte p = content.getByte();
+        byte p = content.peekByte();
         if (p != PROTOCOL_BNCS) {
-            qDebug() << "ERROR: Packet not a BNCS packet.";
-            return;
+            qDebug() << "BNCSPacket: Packet not a BNCS packet.";
         }
-        byte i = content.getByte();
+        byte i = content.peekByte(1);
         if (i != packetId()){
-            qDebug() << "ERROR: Packet reported the wrong Iid.";
-            return;
+            qDebug() << "BNCSPacket: Packet reported the wrong id.";
         }
-        word s = content.getWord();
-        if (s != mData.size()){
-            qDebug() << "ERROR: Packet size incorrect. Reported: " << s << " Actual: " << mData.size();
-            return;
+        word s = content.peekWord(2);
+        if (s != content.size()){
+            qDebug() << "BNCSPacket: Packet size incorrect. Reported: " << s << " Actual: " << content.size();
         }
+        content.getDWord();
         mData = content.getVoid(content.size());
     }
 
+private:
     PacketId mPId;
 };
 

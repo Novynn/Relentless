@@ -30,7 +30,7 @@ public:
 
     void linkPlugin(Plugin *plugin);
     void unloadPlugin(Plugin *plugin);
-    bool loadPlugin(QDir path, QString fileName);
+    bool loadPlugin(QDir path, QString fileName, int attempts = 1);
 private:
     bool loadPlugin(QObject *object, QJsonObject pluginData);
     PluginHash plugins;

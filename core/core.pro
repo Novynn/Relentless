@@ -8,9 +8,11 @@ QT += core network
 
 win32 {
     QT += widgets
+    RC_ICONS += ../../logo.ico
 }
 
 CONFIG += c++11
+QMAKE_CXXFLAGS_WARN_OFF -= -Wunused-parameter
 
 LIBS += -lz
 
@@ -46,8 +48,11 @@ SOURCES += main.cpp \
     game/gameprotocol.cpp \
     game/map/slotmap.cpp \
     client/clientproxy.cpp \
-    client/bnlsprotocol.cpp
-
+    client/bnlsprotocol.cpp \
+    client/bncskeyhandler.cpp \
+    client/bncsnlshandler.cpp \
+    shared/uint256_t/uint128_t.cpp \
+    shared/uint256_t/uint256_t.cpp
 HEADERS += \
     core.h \
     client/clientcore.h \
@@ -81,7 +86,12 @@ HEADERS += \
     client/friend.h \
     client/clientproxy.h \
     client/bnlsprotocol.h \
-    client/protocol.h
+    client/protocol.h \
+    shared/qtcpserverex.h \
+    client/bncskeyhandler.h \
+    client/bncsnlshandler.h \
+    shared/uint256_t/uint128_t.h \
+    shared/uint256_t/uint256_t.h
 
 
 

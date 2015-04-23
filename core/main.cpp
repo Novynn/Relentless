@@ -15,6 +15,9 @@ int main(int argc, char *argv[]){
     QCoreApplication a(argc, argv);
 #endif
 
+    qsrand(QDateTime::currentMSecsSinceEpoch());
+
     Core c;
+
     return a.exec();
 }

@@ -42,17 +42,16 @@ public:
         setImportance(100);
     }
 
-    template<class PROTOCOL>
+    template<class PACKET>
     static QString packetIdToString(uint packet) {
-        QMetaObject metaObject = PROTOCOL::staticMetaObject;
+        QMetaObject metaObject = PACKET::staticMetaObject;
         QMetaEnum metaEnum = metaObject.enumerator(metaObject.indexOfEnumerator("PacketId"));
         return QString(metaEnum.valueToKey(packet));
     }
 
-private:
     virtual void stripHeader() = 0;
 protected:
-    Packet(QByteArray data = QByteArray(), Locality from = FROM_LOCAL, uint importance = 1, qint64 activeTime = QDateTime::currentMSecsSinceEpoch());
+    Packet(const QByteArray &data = QByteArray(), Locality from = FROM_LOCAL, uint importance = 1, qint64 activeTime = QDateTime::currentMSecsSinceEpoch());
 
     QByteArray mData;
     Locality mLocality;

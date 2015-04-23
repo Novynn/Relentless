@@ -24,14 +24,14 @@ void PluginCore::pluginChanged(const QString &filePath) {
 
     if (fileInfo.isDir()) {
         QDir path(filePath);
-        print("Loading new plugins from [" + path.absolutePath() + "]");
+        //print("Loading new plugins from [" + path.absolutePath() + "]");
 
         for(QString fileName : path.entryList({"*.dll"}, QDir::Files)) {
             if (knownPlugins.keys().contains(fileName)){
                 QFileInfo newFileInfo(path.absoluteFilePath(fileName));
-                print("We've seen " + fileName + " before...");
+                //print("We've seen " + fileName + " before...");
                 if (newFileInfo.size() == 0) {
-                    info("\tIt's filesize is 0 bytes, will wait before attempting to load.");
+                    //info("\tIt's filesize is 0 bytes, will wait before attempting to load.");
                     continue;
                 }
                 QDateTime knownModified = knownPlugins.value(fileName);
@@ -39,10 +39,11 @@ void PluginCore::pluginChanged(const QString &filePath) {
                 if (knownModified < newModified) {
                     info("Reloading " + fileName + "...");
                     knownPlugins.remove(fileName);
-                    QTimer::singleShot(1000, [this, path, fileName]() {loadPlugin(path, fileName);});
+                    // Load
+                    loadPlugin(path, fileName, 3);
                 }
                 else {
-                    print("File is old, or the same.");
+                    //print("File is old, or the same.");
                 }
             }
         }
@@ -59,7 +60,7 @@ void PluginCore::printMessage(Plugin *plugin, QString message, MessageType type)
     core()->printMessage(message, origin, type);
 }
 
-bool PluginCore::loadPlugin(QDir path, QString fileName) {
+bool PluginCore::loadPlugin(QDir path, QString fileName, int attempts) {
     QString file = path.absoluteFilePath(fileName);
     QFileInfo fileInfo(file);
 
@@ -74,6 +75,13 @@ bool PluginCore::loadPlugin(QDir path, QString fileName) {
         else {
             error("\tCould not load plugin.");
         }
+
+        if (attempts > 1) {
+            attempts--;
+            info("\tWill attempt to reload plugin in 5 seconds...");
+            QTimer::singleShot(5000, [this, path, fileName, attempts]() {loadPlugin(path, fileName, attempts);});
+        }
+
         loader->deleteLater();
         return false;
     }
