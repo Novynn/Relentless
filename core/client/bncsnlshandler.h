@@ -6,7 +6,6 @@
 #include <QtEndian>
 #include <qbytearraybuilder.h>
 #include "shared/uint256_t/uint256_t.h"
-#include "shared/bigint/BigIntegerLibrary.hh"
 #include <QCryptographicHash>
 #include <random>
 
