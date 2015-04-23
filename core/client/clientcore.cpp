@@ -35,6 +35,11 @@ void ClientCore::loadClients(){
         multiClientMode = true;
     }
     info("Finished loading clients (@" + QString::number(core()->uptime()) + "ms)");
+
+    foreach(Client* client, clients) {
+        if (!client->autoConnect()) continue;
+        client->connectClient();
+    }
 }
 
 void ClientCore::clientOutput(Client* client, QString message, MessageType type){

@@ -70,6 +70,10 @@ public:
         return settings;
     }
 
+    bool autoConnect() {
+        return mAutoConnect;
+    }
+
     void print(QString message);
     void info(QString message);
     void warning(QString message);
@@ -164,6 +168,8 @@ public:
     int pingMode;
 
     Status mStatus;
+
+    bool mAutoConnect;
 
     QList<Friend*> _friends;
     QTimer* _friendsUpdateTimer;

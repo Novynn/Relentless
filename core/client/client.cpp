@@ -91,6 +91,7 @@ bool Client::loadSettings() {
     bncsHost    = settings->value("host", "").toString().toLower();
     mRealm      = settings->value("realm", "").toString().toLower();
     bncsPort    = settings->value("port", 6112).toInt();
+    mAutoConnect= settings->value("autoconnect", false).toBool();
     settings->endGroup();
 
     settings->beginGroup("BNLS");
