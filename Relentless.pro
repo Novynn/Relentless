@@ -2,4 +2,4 @@ TEMPLATE = subdirs
 
 SUBDIRS = core #../plugins
 
-QMAKE_CFLAGS = -Wno-unused-parameter
+QMAKE_CXXFLAGS = -Wno-unused-parameter
